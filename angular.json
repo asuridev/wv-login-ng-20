@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "transversal": {
+    "angular-spa-code-engine": {
       "projectType": "application",
       "schematics": {},
       "root": "",
