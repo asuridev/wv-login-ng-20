@@ -1,0 +1,14 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:18.0.2
+    container_name: wv-login-keycloak
+    command: ['start-dev', '--import-realm']
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      # El webview espera el issuer bajo /auth (environment.keycloak.issuer).
+      KC_HTTP_RELATIVE_PATH: /auth
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./realm:/opt/keycloak/data/import:ro

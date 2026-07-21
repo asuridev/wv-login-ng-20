@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/**
+ * Design system del webview. Los valores declarados aquí son los del partner
+ * `cardif-banco-default`; en runtime `ThemeApplier` sobrescribe las mismas CSS
+ * vars en `:root` con el tema del partner activo (ver
+ * `core/services/theme-applier.ts`). Nunca escribir estos valores como
+ * literales en un template.
+ */
+@theme {
+  /* Colores de marca — namespace --color-* → bg-* / text-* / border-* */
+  --color-primary-main: #bebabaff;
+  --color-primary-light: #bebabaff;
+  --color-primary-dark: #002449;
+  --color-primary-contrast: #ffffff;
+
+  --color-secondary-main: #bebabaff;
+  --color-secondary-light: #c3c5ca;
+  --color-secondary-dark: #000000;
+  --color-secondary-contrast: #ffffff;
+
+  --color-accent-main: #bebabaff;
+  --color-accent-light: #f4f4f4;
+  --color-accent-dark: #002449;
+  --color-accent-contrast: #000000;
+
+  --color-neutral-background: #f4f4f4;
+  --color-neutral-surface: #ffffff;
+  --color-neutral-light: #c3c5ca;
+  --color-neutral-medium: #adadad;
+  --color-neutral-border: #7d8890;
+  --color-neutral-divider: #5c5c5c;
+  --color-neutral-disabled: #eeeeee;
+  --color-neutral-sky: #ccd3db;
+
+  --color-text-primary: #333333;
+  --color-text-secondary: #5c5c5c;
+  --color-text-brand: #333333;
+  --color-text-disabled: #adadad;
+  --color-text-hint: #7d8890;
+
+  --color-status-success: #bebabaff;
+  --color-status-warning: #bebabaff;
+  --color-status-error: #bebabaff;
+  --color-status-info: #bebabaff;
+
+  --color-border-primary: #b5ecff;
+  --color-border-secondary: #0862c5;
+
+  --color-interactive-hover: rgba(237, 28, 41, 0.08);
+  --color-interactive-focus: rgba(237, 28, 41, 0.12);
+  --color-interactive-active: rgba(237, 28, 41, 0.16);
+  --color-interactive-visited: #002449;
+
+  /* Tipografía del partner */
+  --font-partner: Roboto, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-xxl: 1.5rem;
+  --text-xxxl: 2rem;
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Layout del diseño (Figma 12286:272307) */
+  --radius-card: 0.75rem;
+  --radius-badge: 0.5rem;
+
+  --container-card: 315.5px;
+  --container-card-body: 217px;
+
+  --spacing-card-h: 326px;
+  --spacing-card-gap: 31px;
+  --spacing-badge-x: 13px;
+  --spacing-badge-y: 5px;
+  --spacing-header: 80px;
+  --spacing-footer-x: 90px;
+}
+
+html {
+  font-family: var(--font-partner);
+}

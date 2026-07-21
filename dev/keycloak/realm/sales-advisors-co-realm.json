@@ -1,0 +1,118 @@
+{
+  "realm": "sales-advisors.co",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "accessTokenLifespan": 1800,
+  "clients": [
+    {
+      "clientId": "webviewlogin",
+      "name": "Webview Login (transversal)",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": ["http://localhost:4200/*"],
+      "webOrigins": ["http://localhost:4200"],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:4200/*"
+      },
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"],
+      "protocolMappers": [
+        {
+          "name": "partner_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "partner_id",
+            "claim.name": "partner_id",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "webtransversal",
+      "name": "Webview destino (redirect SSO)",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
+    }
+  ],
+  "roles": {
+    "client": {
+      "webviewlogin": [
+        { "name": "card:protection", "description": "Ver card Seguro Tradicional" },
+        { "name": "card:modular", "description": "Ver card Seguro Modular" },
+        { "name": "card:progress", "description": "Ver card ¿Cómo voy?" },
+        { "name": "card:medical", "description": "Ver card Portal Médico" }
+      ]
+    }
+  },
+  "users": [
+    {
+      "username": "full.occidente",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Full",
+      "lastName": "Occidente",
+      "email": "full.occidente@example.com",
+      "attributes": { "partner_id": ["11"] },
+      "credentials": [{ "type": "password", "value": "test1234", "temporary": false }],
+      "clientRoles": {
+        "webviewlogin": ["card:protection", "card:modular", "card:progress", "card:medical"]
+      }
+    },
+    {
+      "username": "parcial.tuya",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Parcial",
+      "lastName": "Tuya",
+      "email": "parcial.tuya@example.com",
+      "attributes": { "partner_id": ["19"] },
+      "credentials": [{ "type": "password", "value": "test1234", "temporary": false }],
+      "clientRoles": {
+        "webviewlogin": ["card:protection", "card:progress"]
+      }
+    },
+    {
+      "username": "sinroles.bogota",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Sin",
+      "lastName": "Roles",
+      "email": "sinroles.bogota@example.com",
+      "attributes": { "partner_id": ["10"] },
+      "credentials": [{ "type": "password", "value": "test1234", "temporary": false }]
+    },
+    {
+      "username": "multi.partner",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Multi",
+      "lastName": "Partner",
+      "email": "multi.partner@example.com",
+      "attributes": { "partner_id": ["11", "19"] },
+      "credentials": [{ "type": "password", "value": "test1234", "temporary": false }],
+      "clientRoles": {
+        "webviewlogin": ["card:protection", "card:modular", "card:progress", "card:medical"]
+      }
+    }
+  ]
+}
