@@ -12,9 +12,10 @@ import { MasheryQueries } from '../queries/mashery-queries';
   selector: 'home-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Card, Badge, Button],
+  host: { class: 'block w-full max-w-card' },
   template: `
     <ui-card>
-      <div class="flex h-full w-card-body flex-col items-start gap-card-gap py-5 pl-5">
+      <div class="flex h-full w-full flex-col items-start gap-card-gap py-5 pr-5 pl-5">
         <ui-badge>{{ labelBadge() }}</ui-badge>
         <h5 class="text-xxl/8 font-semibold text-text-brand">{{ title() }}</h5>
         <div class="pt-4">

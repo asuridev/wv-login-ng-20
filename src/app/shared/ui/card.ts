@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class:
-      'block w-card max-w-card h-card-h overflow-hidden rounded-card border border-neutral-border bg-neutral-surface',
+      'block w-full max-w-card h-card-h overflow-hidden rounded-card border border-neutral-border bg-neutral-surface',
   },
   template: `<ng-content />`,
 })

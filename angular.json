@@ -86,16 +86,16 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "transversal:build:production"
+              "buildTarget": "angular-spa-code-engine:build:production"
             },
             "qa": {
-              "buildTarget": "transversal:build:qa"
+              "buildTarget": "angular-spa-code-engine:build:qa"
             },
             "development": {
-              "buildTarget": "transversal:build:development"
+              "buildTarget": "angular-spa-code-engine:build:development"
             },
             "local": {
-              "buildTarget": "transversal:build:local"
+              "buildTarget": "angular-spa-code-engine:build:local"
             }
           },
           "defaultConfiguration": "development"

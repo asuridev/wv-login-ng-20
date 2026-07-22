@@ -18,12 +18,14 @@ import { HomeHeader } from '../../components/home-header';
     <div class="flex min-h-dvh flex-col bg-neutral-sky">
       <home-header />
 
-      <main class="flex flex-1 flex-col justify-center px-2 py-8">
+      <main class="flex flex-1 flex-col justify-center px-4 py-8">
         <h1 class="mb-7 text-center text-xxxl font-semibold text-text-primary">
           {{ partnerStore.bodyTitle() }}
         </h1>
 
-        <div class="flex flex-wrap items-start justify-center gap-2">
+        <div
+          class="mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        >
           @for (card of visibleCards(); track card.title) {
             <home-card
               [title]="card.title"
