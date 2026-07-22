@@ -44,7 +44,7 @@ export const environment = {
   },
   keycloak: {
     issuer: 'https://sso-lam-assurance.echonet/auth',
-    realm: 'sales-advisors.co',
+    realm: 'sales-advisors-co',
     clientId: 'webviewlogin',
     redirectClintId: 'webtransversal',
   },
