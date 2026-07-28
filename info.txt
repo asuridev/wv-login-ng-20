@@ -14,3 +14,6 @@ test('Check application URL', { timeout: 60000 }, async () => {
 
 
 "acceptance-test": "mkdir -p reports && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/acceptance-test-results.xml acceptance-test/"
+
+
+"acceptance-test": "node -e \"require('fs').mkdirSync('reports',{recursive:true})\" && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/acceptance-test-results.xml acceptance-test/"
