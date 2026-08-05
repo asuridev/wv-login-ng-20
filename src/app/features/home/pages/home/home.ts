@@ -65,7 +65,7 @@ export default class Home {
 
   constructor() {
     this.partnerStore.setDeviceType(this.deviceInfoService.getDeviceType());
-    this.partnerStore.setCorrelationId(crypto.randomUUID());
+    this.partnerStore.newCorrelationId();
     this.partnerStore.setAdvisorId(this.keycloak.tokenParsed?.['preferred_username'] ?? '');
 
     effect(() => {

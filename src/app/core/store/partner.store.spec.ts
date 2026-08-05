@@ -45,4 +45,12 @@ describe('PartnerStore', () => {
     expect(store.productType()).toBe(4);
     expect(store.ip()).toBe('1.2.3.4');
   });
+
+  it('genera un correlationId distinto en cada invocación', () => {
+    const first = store.newCorrelationId();
+    const second = store.newCorrelationId();
+
+    expect(first).not.toBe(second);
+    expect(store.correlationId()).toBe(second);
+  });
 });

@@ -78,6 +78,19 @@ describe('HomeCard', () => {
     expect(redirectServiceSpy.redirectTo).not.toHaveBeenCalled();
   });
 
+  it('usa un correlationId distinto en cada flujo de redirección', async () => {
+    const fixture = createComponent(1);
+
+    await fixture.componentInstance.onClick();
+    const first = partnerStore.correlationId();
+
+    await fixture.componentInstance.onClick();
+    const second = partnerStore.correlationId();
+
+    expect(first).toBeTruthy();
+    expect(second).not.toBe(first);
+  });
+
   it('ignora clicks adicionales mientras la mutación está en curso', async () => {
     const fixture = createComponent(1);
 

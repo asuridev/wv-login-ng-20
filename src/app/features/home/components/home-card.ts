@@ -47,8 +47,10 @@ export class HomeCard {
     if (this.submitting()) return;
     this.submitting.set(true);
 
-    // Se fija antes de mutar: RedirectService lo lee para el `state` del auth URL.
+    // Se fijan antes de mutar: RedirectService los lee para el `state` del auth URL.
     this.partnerStore.setProductType(this.productType() ?? 0);
+    // Cada flujo de redirección viaja con su propio correlationId.
+    this.partnerStore.newCorrelationId();
 
     try {
       await this.saleCompleted.mutateAsync();

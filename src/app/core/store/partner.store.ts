@@ -59,6 +59,15 @@ export const PartnerStore = signalStore(
     setCorrelationId(correlationId: string): void {
       patchState(store, { correlationId });
     },
+    /**
+     * Genera y fija un `correlationId` nuevo. Cada flujo de redirección debe
+     * llevar el suyo, así que se invoca al cargar la página y antes de cada venta.
+     */
+    newCorrelationId(): string {
+      const correlationId = crypto.randomUUID();
+      patchState(store, { correlationId });
+      return correlationId;
+    },
     setAdvisorId(advisorId: string): void {
       patchState(store, { advisorId });
     },
