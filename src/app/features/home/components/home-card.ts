@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { injectMutation } from '@tanstack/angular-query-experimental';
 
 import { RedirectService } from '../../../core/services/redirect';
@@ -19,7 +19,9 @@ import { MasheryQueries } from '../queries/mashery-queries';
         <ui-badge>{{ labelBadge() }}</ui-badge>
         <h5 class="text-xxl/8 font-semibold text-text-brand">{{ title() }}</h5>
         <div class="pt-4">
-          <button ui-button (click)="onClick()">{{ labelButton() }}</button>
+          <button ui-button [disabled]="submitting()" (click)="onClick()">
+            {{ submitting() ? 'Cargando...' : labelButton() }}
+          </button>
         </div>
       </div>
     </ui-card>
@@ -38,10 +40,25 @@ export class HomeCard {
 
   private readonly saleCompleted = injectMutation(() => this.masheryQueries.sendSaleCompleted());
 
-  onClick(): void {
-    this.saleCompleted.mutate();
+  /** Bloquea el botón desde el click hasta que la mutación falla o la página navega. */
+  protected readonly submitting = signal(false);
+
+  async onClick(): Promise<void> {
+    if (this.submitting()) return;
+    this.submitting.set(true);
+
+    // Se fija antes de mutar: RedirectService lo lee para el `state` del auth URL.
     this.partnerStore.setProductType(this.productType() ?? 0);
-    void this.redirectService.redirectTo(
+
+    try {
+      await this.saleCompleted.mutateAsync();
+    } catch {
+      // El error ya lo normaliza el errorInterceptor; aquí sólo se evita el redirect.
+      this.submitting.set(false);
+      return;
+    }
+
+    await this.redirectService.redirectTo(
       `${this.redirectTo()}/wv_${this.partnerStore.partnerId()}`,
       '/home'
     );

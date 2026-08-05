@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 
 export type ButtonVariant = 'outline' | 'ghost';
 
-const BASE_CLASSES = 'inline-flex cursor-pointer items-center justify-center transition-colors';
+const BASE_CLASSES =
+  'inline-flex cursor-pointer items-center justify-center transition-colors ' +
+  'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60';
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   outline:

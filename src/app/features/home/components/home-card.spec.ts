@@ -58,8 +58,7 @@ describe('HomeCard', () => {
   it('registra la venta, fija el productType y redirige al webview del partner', async () => {
     const fixture = createComponent(1);
 
-    fixture.componentInstance.onClick();
-    await fixture.whenStable();
+    await fixture.componentInstance.onClick();
 
     expect(mutationFn).toHaveBeenCalled();
     expect(partnerStore.productType()).toBe(1);
@@ -67,6 +66,25 @@ describe('HomeCard', () => {
       'https://webview.test/wv_occidente',
       '/home'
     );
+  });
+
+  it('no redirige cuando el registro de la venta falla', async () => {
+    mutationFn.and.rejectWith(new Error('boom'));
+    const fixture = createComponent(1);
+
+    await fixture.componentInstance.onClick();
+
+    expect(mutationFn).toHaveBeenCalled();
+    expect(redirectServiceSpy.redirectTo).not.toHaveBeenCalled();
+  });
+
+  it('ignora clicks adicionales mientras la mutación está en curso', async () => {
+    const fixture = createComponent(1);
+
+    await Promise.all([fixture.componentInstance.onClick(), fixture.componentInstance.onClick()]);
+
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    expect(redirectServiceSpy.redirectTo).toHaveBeenCalledTimes(1);
   });
 
   it('usa productType 0 cuando el input viene sin valor', () => {
