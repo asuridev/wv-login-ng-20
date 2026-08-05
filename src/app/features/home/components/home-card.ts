@@ -62,5 +62,6 @@ export class HomeCard {
       `${this.redirectTo()}/wv_${this.partnerStore.partnerId()}`,
       '/home'
     );
+    this.submitting.set(false);
   }
 }
