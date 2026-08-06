@@ -4,6 +4,7 @@ import { provideTanStackQuery, QueryClient } from '@tanstack/angular-query-exper
 
 import { RedirectService } from '../../../core/services/redirect';
 import { PartnerStore } from '../../../core/store/partner.store';
+import { ToastStore } from '../../../core/store/toast.store';
 import { MasheryQueries } from '../queries/mashery-queries';
 import { HomeCard } from './home-card';
 
@@ -11,6 +12,7 @@ describe('HomeCard', () => {
   let redirectServiceSpy: jasmine.SpyObj<RedirectService>;
   let mutationFn: jasmine.Spy;
   let partnerStore: InstanceType<typeof PartnerStore>;
+  let toastStore: InstanceType<typeof ToastStore>;
 
   beforeEach(async () => {
     redirectServiceSpy = jasmine.createSpyObj('RedirectService', ['redirectTo']);
@@ -32,6 +34,9 @@ describe('HomeCard', () => {
 
     partnerStore = TestBed.inject(PartnerStore);
     partnerStore.setPartner('occidente');
+
+    toastStore = TestBed.inject(ToastStore);
+    toastStore.clear();
   });
 
   function createComponent(productType?: number): ComponentFixture<HomeCard> {
@@ -76,6 +81,30 @@ describe('HomeCard', () => {
 
     expect(mutationFn).toHaveBeenCalled();
     expect(redirectServiceSpy.redirectTo).not.toHaveBeenCalled();
+  });
+
+  it('avisa con un toast de error cuando el registro de la venta falla', async () => {
+    mutationFn.and.rejectWith(new Error('boom'));
+    const fixture = createComponent(1);
+
+    await fixture.componentInstance.onClick();
+
+    expect(toastStore.toasts().length).toBe(1);
+    expect(toastStore.toasts()[0]).toEqual(
+      jasmine.objectContaining({
+        variant: 'error',
+        title: 'Ocurrió un error',
+        message: 'No fue posible iniciar el flujo de venta. Intenta nuevamente.',
+      })
+    );
+  });
+
+  it('no muestra ningún toast cuando el flujo de venta se inicia bien', async () => {
+    const fixture = createComponent(1);
+
+    await fixture.componentInstance.onClick();
+
+    expect(toastStore.toasts()).toEqual([]);
   });
 
   it('usa un correlationId distinto en cada flujo de redirección', async () => {

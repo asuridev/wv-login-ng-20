@@ -3,10 +3,14 @@ import { injectMutation } from '@tanstack/angular-query-experimental';
 
 import { RedirectService } from '../../../core/services/redirect';
 import { PartnerStore } from '../../../core/store/partner.store';
+import { ToastStore } from '../../../core/store/toast.store';
 import { Badge } from '../../../shared/ui/badge';
 import { Button } from '../../../shared/ui/button';
 import { Card } from '../../../shared/ui/card';
 import { MasheryQueries } from '../queries/mashery-queries';
+
+const SALE_ERROR_TITLE = 'Ocurrió un error';
+const SALE_ERROR_MESSAGE = 'No fue posible iniciar el flujo de venta. Intenta nuevamente.';
 
 @Component({
   selector: 'home-card',
@@ -36,6 +40,7 @@ export class HomeCard {
 
   private readonly partnerStore = inject(PartnerStore);
   private readonly redirectService = inject(RedirectService);
+  private readonly toastStore = inject(ToastStore);
   private readonly masheryQueries = inject(MasheryQueries);
 
   private readonly saleCompleted = injectMutation(() => this.masheryQueries.sendSaleCompleted());
@@ -55,7 +60,9 @@ export class HomeCard {
     try {
       await this.saleCompleted.mutateAsync();
     } catch {
-      // El error ya lo normaliza el errorInterceptor; aquí sólo se evita el redirect.
+      // El error ya lo normaliza el errorInterceptor; aquí se avisa al usuario
+      // y se evita el redirect.
+      this.toastStore.error(SALE_ERROR_TITLE, SALE_ERROR_MESSAGE);
       this.submitting.set(false);
       return;
     }
