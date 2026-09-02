@@ -95,13 +95,10 @@
   --color-login-surface: #ffffff;
   --color-login-title: #1b1c1e;
   --color-login-subtitle: #424242;
-  --color-login-muted: #6e7078;
 
   --font-login: Poppins, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
 
-  --text-login-lead: 24px;
-  --text-login-heading: 15px;
-  --text-login-body: 13px;
+  --text-login-body: 15px;
 
   --leading-login-body: 1.45;
 

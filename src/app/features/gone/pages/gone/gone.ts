@@ -19,13 +19,22 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       <section
         class="w-full max-w-login-card rounded-login-card-sm bg-login-surface px-login-card-x-sm py-login-card-y-sm text-center shadow-login-card-sm xs:rounded-login-card xs:px-login-card-x xs:py-login-card-y xs:shadow-login-card"
       >
-        <p class="mb-2 text-login-lead leading-8 font-semibold text-login-title">Lo sentimos</p>
-        <h1 class="text-login-heading leading-5 font-medium text-login-subtitle">
-          Esta página ya no está disponible
+        <h1 class="text-login-body leading-login-body font-normal text-login-subtitle">
+          Lamentamos informarle que
+          <strong class="font-semibold text-login-title"
+            >esta página ya no se encuentra disponible</strong
+          >.
         </h1>
-        <p class="mt-2.5 text-login-body leading-login-body text-login-muted">
-          El enlace que intentas abrir fue retirado y ya no se encuentra activo. Si llegaste aquí
-          desde un correo o un mensaje, comunícate con tu entidad para obtener un enlace vigente.
+        <p class="mt-3 text-login-body leading-login-body text-login-subtitle">
+          El enlace al que ha intentado acceder ha sido retirado y no está activo en la actualidad.
+        </p>
+        <p class="mt-3 text-login-body leading-login-body text-login-subtitle">
+          <strong class="font-semibold text-login-title"
+            >Para obtener un enlace vigente o encontrar la información que busca</strong
+          >, le invitamos a comunicarse con su
+          <strong class="font-semibold text-login-title"
+            >entidad o línea de atención al cliente</strong
+          >.
         </p>
       </section>
     </main>

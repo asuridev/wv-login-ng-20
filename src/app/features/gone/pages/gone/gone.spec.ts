@@ -21,15 +21,15 @@ describe('Gone', () => {
     fixture.detectChanges();
 
     const heading = (fixture.nativeElement as HTMLElement).querySelector('h1');
-    expect(heading?.textContent?.trim()).toBe('Esta página ya no está disponible');
+    expect(heading?.textContent).toContain('esta página ya no se encuentra disponible');
   });
 
-  it('remite a la entidad, no al banco', () => {
+  it('remite a la entidad o linea de atencion, no al banco', () => {
     const fixture = TestBed.createComponent(Gone);
     fixture.detectChanges();
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('comunícate con tu entidad');
+    expect(text).toContain('entidad o línea de atención al cliente');
     expect(text).not.toContain('banco');
   });
 
