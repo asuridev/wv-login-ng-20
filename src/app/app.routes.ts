@@ -10,6 +10,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/not-found/pages/not-found/not-found'),
   },
   {
+    path: 'gone',
+    loadComponent: () => import('./features/gone/pages/gone/gone'),
+  },
+  {
     path: ':partnerId',
     canActivate: [authGuard, partnerGuard, partnerAccessGuard],
     loadComponent: () =>

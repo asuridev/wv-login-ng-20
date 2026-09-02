@@ -24,10 +24,11 @@ export const appConfig: ApplicationConfig = {
         realm: environment.keycloak.realm,
         clientId: environment.keycloak.clientId,
       },
-      initOptions: {
-        onLoad: 'check-sso',
-        checkLoginIframe: false,
-      },
+      // Sin `initOptions` a propósito: keycloak-angular solo registra su
+      // `provideAppInitializer` cuando se le pasan, y ese initializer corre
+      // antes de que el Router evalúe la URL — es lo que hacía que hasta las
+      // rutas públicas (`/gone`, `/not-found`, `**`) redirigieran al SSO. La
+      // inicialización se difiere a `authGuard` vía `KeycloakInit`.
     }),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor, loadingInterceptor])),
     provideRouter(routes, withComponentInputBinding()),
