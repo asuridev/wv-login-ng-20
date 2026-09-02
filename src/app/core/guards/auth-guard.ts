@@ -22,6 +22,11 @@ export const authGuard: CanActivateFn = async (_route, state) => {
     return true;
   }
 
-  await keycloak.login({ redirectUri: window.location.origin + state.url });
+  // OIDC no admite fragmento en `redirect_uri`. Quitarlo evita, ademas,
+  // arrastrar los parametros de un callback previo si el init no llego a
+  // limpiar la URL antes de que el Router la serializara en `state.url`.
+  const [path] = state.url.split('#');
+
+  await keycloak.login({ redirectUri: window.location.origin + path });
   return false;
 };

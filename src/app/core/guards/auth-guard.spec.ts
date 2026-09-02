@@ -44,4 +44,14 @@ describe('authGuard', () => {
       redirectUri: `${window.location.origin}/occidente/home`,
     });
   });
+
+  it('descarta el fragmento del callback al construir el redirectUri', async () => {
+    configureWith(false);
+
+    await activate('/occidente#error=login_required&state=abc');
+
+    expect(login).toHaveBeenCalledOnceWith({
+      redirectUri: `${window.location.origin}/occidente`,
+    });
+  });
 });
