@@ -57,3 +57,7 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+Title: Unauthorized error when pulling Docker images from JFrog Artifactory
+
+I am unable to pull Docker images from our JFrog Artifactory repository. Even though `docker login` completes successfully and returns "Login Succeeded", any subsequent `docker pull` fails with an unauthorized error. Could you please check whether my user account has the correct read/pull permissions on this repository, and let me know how to resolve it?
