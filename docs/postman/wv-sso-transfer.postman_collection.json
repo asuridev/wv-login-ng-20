@@ -1,0 +1,679 @@
+{
+  "info": {
+    "name": "Transferencia de sesion SSO - webview-login -> app destino",
+    "description": "Valida de punta a punta el SSO silencioso entre `webviewlogin` (app A, este repo) y el cliente destino `webtransversal` (app B).\n\nGuia de integracion: `docs/guia-integracion-app-destino.md`.\nComo ejecutarla y sus limitaciones: `docs/postman/README.md`.\n\nLas carpetas se corren **en orden**: cada una deja en el entorno lo que necesita la siguiente. El cookie jar de Postman hace de navegador, y es lo que permite que la cookie de sesion del realm viaje en la peticion `prompt=none`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Descubrimiento",
+      "item": [
+        {
+          "name": "0.1 Discovery (.well-known)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{issuer}}/realms/{{realm}}/.well-known/openid-configuration",
+            "description": "Lee el documento de metadatos OIDC del realm y guarda los endpoints en variables. Todo lo demas de la coleccion usa esas variables, nunca URLs quemadas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El realm responde 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const cfg = pm.response.json();",
+                  "",
+                  "pm.test('El issuer coincide con el realm configurado', () => {",
+                  "  pm.expect(cfg.issuer).to.include('/realms/' + pm.environment.get('realm'));",
+                  "});",
+                  "",
+                  "pm.environment.set('authEndpoint', cfg.authorization_endpoint);",
+                  "pm.environment.set('tokenEndpoint', cfg.token_endpoint);",
+                  "pm.environment.set('userinfoEndpoint', cfg.userinfo_endpoint);",
+                  "pm.environment.set('endSessionEndpoint', cfg.end_session_endpoint);",
+                  "",
+                  "pm.test('Expone authorization_endpoint, token_endpoint y end_session_endpoint', () => {",
+                  "  pm.expect(cfg.authorization_endpoint, 'authorization_endpoint').to.be.a('string');",
+                  "  pm.expect(cfg.token_endpoint, 'token_endpoint').to.be.a('string');",
+                  "  pm.expect(cfg.end_session_endpoint, 'end_session_endpoint').to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Sesion del asesor en la app A",
+      "item": [
+        {
+          "name": "1.1 Abrir la pantalla de login (app A)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{authEndpoint}}?client_id={{clientIdA}}&response_type=code&scope=openid%20profile&redirect_uri={{appABaseUrl}}/{{partnerSlug}}&state=bootstrap-app-a",
+            "description": "Equivale a que el navegador aterrice en el SSO. La respuesta es el HTML del formulario de login; de el se extrae la URL de login-actions/authenticate, que lleva session_code, execution y tab_id. Postman guarda en su cookie jar AUTH_SESSION_ID y KC_RESTART: a partir de aqui hace de navegador."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Keycloak devuelve la pantalla de login', () => pm.response.to.have.status(200));",
+                  "",
+                  "const match = pm.response.text().match(/action=\"([^\"]+)\"/);",
+                  "",
+                  "pm.test('El HTML contiene el formulario de login', () => {",
+                  "  pm.expect(match, 'no se encontro un action=... en el HTML').to.not.be.null;",
+                  "});",
+                  "",
+                  "if (match) {",
+                  "  // El HTML escapa los separadores de query como &amp;.",
+                  "  pm.environment.set('loginActionUrl', match[1].replace(/&amp;/g, '&'));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Enviar credenciales (app A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": "{{loginActionUrl}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{password}}",
+                  "type": "text"
+                },
+                {
+                  "key": "credentialId",
+                  "value": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "Postea el formulario. Keycloak responde 302 al redirect_uri con el code y, sobre todo, deja la cookie KEYCLOAK_IDENTITY en el cookie jar: esa cookie ES la sesion SSO que despues se transfiere a la app B."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Keycloak redirige tras el login (302)', () => {",
+                  "  pm.expect(pm.response.code, 'un 200 aqui significa credenciales invalidas o un formulario extra (MFA, terminos)').to.eql(302);",
+                  "});",
+                  "",
+                  "const location = pm.response.headers.get('Location') || '';",
+                  "",
+                  "pm.test('La redireccion trae un authorization code', () => {",
+                  "  pm.expect(location).to.match(/[?&]code=/);",
+                  "});",
+                  "",
+                  "const code = (location.match(/[?&]code=([^&]+)/) || [])[1];",
+                  "if (code) { pm.environment.set('codeA', decodeURIComponent(code)); }",
+                  "",
+                  "pm.test('Se establece la cookie de sesion SSO del realm (KEYCLOAK_IDENTITY)', () => {",
+                  "  const cookies = (pm.response.headers.all() || [])",
+                  "    .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "    .map((h) => h.value)",
+                  "    .join(' ; ');",
+                  "  pm.expect(cookies).to.include('KEYCLOAK_IDENTITY');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          }
+        },
+        {
+          "name": "1.3 Canjear el code por tokens (app A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": "{{tokenEndpoint}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientIdA}}",
+                  "type": "text"
+                },
+                {
+                  "key": "code",
+                  "value": "{{codeA}}",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{appABaseUrl}}/{{partnerSlug}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "Los tokens de la app A. El id_token que sale de aqui es el que RedirectService pasa como id_token_hint (src/app/core/services/redirect.ts:26,49)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Decodifica el payload de un JWT (base64url). Solo para inspeccionar claims:",
+                  "// la validacion criptografica la hace Keycloak, no este test.",
+                  "function decodeJwt(token) {",
+                  "  const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                  "  const pad = part.length % 4 ? '='.repeat(4 - (part.length % 4)) : '';",
+                  "  return JSON.parse(Buffer.from(part + pad, 'base64').toString('utf8'));",
+                  "}",
+                  "",
+                  "pm.test('El canje devuelve 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Vienen access_token, id_token y refresh_token', () => {",
+                  "  pm.expect(body.access_token, 'access_token').to.be.a('string');",
+                  "  pm.expect(body.id_token, 'id_token').to.be.a('string');",
+                  "  pm.expect(body.refresh_token, 'refresh_token').to.be.a('string');",
+                  "});",
+                  "",
+                  "pm.environment.set('idTokenA', body.id_token);",
+                  "",
+                  "const access = decodeJwt(body.access_token);",
+                  "pm.environment.set('subA', access.sub);",
+                  "pm.environment.set('sessionStateA', access.session_state || '');",
+                  "",
+                  "pm.test('El access token de la app A trae el claim partner_id (multivalued)', () => {",
+                  "  pm.expect(access.partner_id, 'partner_id: revisa el protocol mapper del cliente ' + pm.environment.get('clientIdA')).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('El access token trae resource_access con los roles de cards', () => {",
+                  "  const ra = access.resource_access || {};",
+                  "  pm.expect(ra).to.have.property(pm.environment.get('clientIdA'));",
+                  "});",
+                  "",
+                  "console.log('[app A] sub=' + access.sub + ' | preferred_username=' + access.preferred_username + ' | partner_id=' + JSON.stringify(access.partner_id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Transferencia de sesion (prompt=none)",
+      "item": [
+        {
+          "name": "2.1 Autorizacion silenciosa para la app B (prompt=none)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{authUrlB}}",
+            "description": "Reproduce la URL que construye RedirectService.redirectTo() (src/app/core/services/redirect.ts:40-52). El pre-request script la arma igual que lo hace el navegador, incluida la doble codificacion del parametro state."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Reproduce src/app/core/services/redirect.ts:33-52.",
+                  "const partnerSlug = pm.environment.get('partnerSlug');",
+                  "const redirectUri = pm.environment.get('appBBaseUrl') + '/wv_' + partnerSlug + '/auth/callback';",
+                  "",
+                  "// Cada flujo de redireccion viaja con su propio correlationId (home-card.ts:58).",
+                  "const correlationId = 'pm-' + Date.now() + '-' + Math.floor(Math.random() * 1e6);",
+                  "",
+                  "const statePayload = {",
+                  "  path: pm.environment.get('targetPath'),",
+                  "  productType: Number(pm.environment.get('productType')),",
+                  "  correlationId: correlationId,",
+                  "  partnerId: partnerSlug",
+                  "};",
+                  "",
+                  "// La app A hace encodeURIComponent(JSON.stringify(state))...",
+                  "const stateEncoded = encodeURIComponent(JSON.stringify(statePayload));",
+                  "",
+                  "pm.environment.set('redirectUriB', redirectUri);",
+                  "pm.environment.set('correlationId', correlationId);",
+                  "pm.environment.set('stateEncoded', stateEncoded);",
+                  "",
+                  "// ...y despues URL.searchParams vuelve a codificarlo al serializar la URL.",
+                  "// De ahi que el state viaje DOBLEMENTE codificado y que la app B necesite un",
+                  "// decodeURIComponent extra sobre el valor que ya decodifico el navegador.",
+                  "const query = [",
+                  "  'client_id=' + encodeURIComponent(pm.environment.get('clientIdB')),",
+                  "  'redirect_uri=' + encodeURIComponent(redirectUri),",
+                  "  'response_type=code',",
+                  "  'scope=' + encodeURIComponent('openid profile'),",
+                  "  'prompt=none',",
+                  "  'id_token_hint=' + encodeURIComponent(pm.environment.get('idTokenA')),",
+                  "  'state=' + encodeURIComponent(stateEncoded)",
+                  "].join('&');",
+                  "",
+                  "pm.environment.set('authUrlB', pm.environment.get('authEndpoint') + '?' + query);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Keycloak concede la autorizacion sin UI (302)', () => {",
+                  "  pm.expect(pm.response.code, 'un 200 aqui es la pantalla de login: no habia sesion SSO').to.eql(302);",
+                  "});",
+                  "",
+                  "const location = pm.response.headers.get('Location') || '';",
+                  "",
+                  "pm.test('No hay error OIDC en la redireccion', () => {",
+                  "  const error = (location.match(/[?&]error=([^&]+)/) || [])[1];",
+                  "  pm.expect(error, 'login_required significa que la cookie de sesion SSO no viajo').to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('Rebota al callback de la app B, con el prefijo wv_{partnerId}', () => {",
+                  "  pm.expect(location).to.have.string(pm.environment.get('redirectUriB'));",
+                  "});",
+                  "",
+                  "pm.test('La redireccion trae un authorization code', () => {",
+                  "  pm.expect(location).to.match(/[?&]code=/);",
+                  "});",
+                  "",
+                  "const code = (location.match(/[?&]code=([^&]+)/) || [])[1];",
+                  "if (code) { pm.environment.set('codeB', decodeURIComponent(code)); }",
+                  "",
+                  "// Lo que la app B leeria con new URLSearchParams(location.search).get('state'):",
+                  "// el navegador ya deshace UNA capa de codificacion.",
+                  "const rawState = (location.match(/[?&]state=([^&]*)/) || [])[1] || '';",
+                  "const stateAsAppBSeesIt = decodeURIComponent(rawState);",
+                  "",
+                  "pm.test('El state vuelve intacto desde Keycloak', () => {",
+                  "  pm.expect(stateAsAppBSeesIt).to.eql(pm.environment.get('stateEncoded'));",
+                  "});",
+                  "",
+                  "pm.test('El state se decodifica a JSON con el contrato acordado', () => {",
+                  "  const state = JSON.parse(decodeURIComponent(stateAsAppBSeesIt));",
+                  "  pm.expect(state.path, 'path').to.eql(pm.environment.get('targetPath'));",
+                  "  pm.expect(state.partnerId, 'partnerId').to.eql(pm.environment.get('partnerSlug'));",
+                  "  pm.expect(state.correlationId, 'correlationId').to.eql(pm.environment.get('correlationId'));",
+                  "  pm.expect(state.productType, 'productType').to.eql(Number(pm.environment.get('productType')));",
+                  "  console.log('[app B] state recibido: ' + JSON.stringify(state));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. La app B obtiene sus propios tokens",
+      "item": [
+        {
+          "name": "3.1 Canjear el code por tokens (app B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": "{{tokenEndpoint}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientIdB}}",
+                  "type": "text"
+                },
+                {
+                  "key": "code",
+                  "value": "{{codeB}}",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{redirectUriB}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "Cliente publico: sin client_secret. Sin code_verifier, porque la app A no envia code_challenge. El redirect_uri debe ser identico al del paso 2.1."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Decodifica el payload de un JWT (base64url). Solo para inspeccionar claims:",
+                  "// la validacion criptografica la hace Keycloak, no este test.",
+                  "function decodeJwt(token) {",
+                  "  const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                  "  const pad = part.length % 4 ? '='.repeat(4 - (part.length % 4)) : '';",
+                  "  return JSON.parse(Buffer.from(part + pad, 'base64').toString('utf8'));",
+                  "}",
+                  "",
+                  "pm.test('El canje devuelve 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('La app B recibe sus propios access_token, id_token y refresh_token', () => {",
+                  "  pm.expect(body.access_token, 'access_token').to.be.a('string');",
+                  "  pm.expect(body.id_token, 'id_token').to.be.a('string');",
+                  "  pm.expect(body.refresh_token, 'refresh_token').to.be.a('string');",
+                  "});",
+                  "",
+                  "pm.environment.set('accessTokenB', body.access_token);",
+                  "pm.environment.set('refreshTokenB', body.refresh_token);",
+                  "",
+                  "const access = decodeJwt(body.access_token);",
+                  "",
+                  "pm.test('El token esta emitido para el cliente destino', () => {",
+                  "  pm.expect(access.azp, 'azp').to.eql(pm.environment.get('clientIdB'));",
+                  "});",
+                  "",
+                  "pm.test('Es el mismo usuario que inicio sesion en la app A', () => {",
+                  "  pm.expect(access.sub, 'sub').to.eql(pm.environment.get('subA'));",
+                  "});",
+                  "",
+                  "pm.test('Es la MISMA sesion SSO: no hubo un login nuevo', () => {",
+                  "  pm.expect(access.session_state, 'session_state').to.eql(pm.environment.get('sessionStateA'));",
+                  "});",
+                  "",
+                  "pm.test('El token de la app B NO trae partner_id (contrato documentado)', () => {",
+                  "  // El protocol mapper partner_id solo existe en el cliente de la app A.",
+                  "  // La app B toma el partnerId del state, o pide el mapper en su propio cliente.",
+                  "  pm.expect(access.partner_id).to.be.undefined;",
+                  "});",
+                  "",
+                  "console.log('[app B] sub=' + access.sub + ' | azp=' + access.azp + ' | expires_in=' + body.expires_in);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Renovar el access token (app B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": "{{tokenEndpoint}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "refresh_token",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientIdB}}",
+                  "type": "text"
+                },
+                {
+                  "key": "refresh_token",
+                  "value": "{{refreshTokenB}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "La app B mantiene su sesion con su propio refresh_token, sin volver a pasar por la app A."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El refresh devuelve 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Se emite un access_token nuevo', () => {",
+                  "  pm.expect(body.access_token, 'access_token').to.be.a('string');",
+                  "  pm.expect(body.access_token).to.not.eql(pm.environment.get('accessTokenB'));",
+                  "});",
+                  "",
+                  "pm.environment.set('accessTokenB', body.access_token);",
+                  "if (body.refresh_token) { pm.environment.set('refreshTokenB', body.refresh_token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 UserInfo con el token de la app B",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessTokenB}}"
+              }
+            ],
+            "url": "{{userinfoEndpoint}}",
+            "description": "Comprobacion final: el IdP reconoce el token de la app B y devuelve la identidad del asesor."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('UserInfo devuelve 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const info = pm.response.json();",
+                  "",
+                  "pm.test('Es el asesor que inicio sesion en la app A', () => {",
+                  "  pm.expect(info.sub, 'sub').to.eql(pm.environment.get('subA'));",
+                  "  pm.expect(info.preferred_username, 'preferred_username').to.eql(pm.environment.get('username'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Casos de error",
+      "item": [
+        {
+          "name": "4.1 Reutilizar el code -> invalid_grant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": "{{tokenEndpoint}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientIdB}}",
+                  "type": "text"
+                },
+                {
+                  "key": "code",
+                  "value": "{{codeB}}",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{redirectUriB}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "El authorization code es de un solo uso y vive ~60s. Si la app B reintenta el canje (doble montaje del componente de callback, recarga de la pagina) recibe esto."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Keycloak rechaza el code ya canjeado (400)', () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test('El error es invalid_grant', () => {",
+                  "  pm.expect(pm.response.json().error).to.eql('invalid_grant');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 redirect_uri no registrado -> Keycloak no redirige",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{authEndpoint}}?client_id={{clientIdA}}&response_type=code&scope=openid&prompt=none&redirect_uri=https%3A%2F%2Fdominio-no-registrado.example.com%2Fauth%2Fcallback",
+            "description": "Se prueba contra el cliente de la app A porque su lista de redirect URIs si esta restringida. Lo importante: cuando el redirect_uri no esta registrado, Keycloak muestra una pagina de error y NO redirige, asi que a la app destino no le llega absolutamente nada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Keycloak responde con error, no con una redireccion', () => {",
+                  "  pm.expect(pm.response.code, 'un 302 significaria que el redirect_uri si estaba aceptado').to.not.eql(302);",
+                  "});",
+                  "",
+                  "pm.test('No hay cabecera Location: nada llega al callback', () => {",
+                  "  pm.expect(pm.response.headers.get('Location')).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          }
+        },
+        {
+          "name": "4.3 Cerrar la sesion SSO del realm",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{endSessionEndpoint}}?id_token_hint={{idTokenA}}",
+            "description": "Invalida la cookie KEYCLOAK_IDENTITY del cookie jar. Sirve para montar el escenario del paso 4.4."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El logout se procesa (200 o 302)', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 302]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.4 prompt=none sin sesion -> login_required",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{authUrlB}}",
+            "description": "Misma peticion del paso 2.1, ya sin sesion SSO. Este es el error que la app B tiene que saber distinguir de un fallo real: significa \"haz un login interactivo\", no \"algo se rompio\"."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Keycloak responde con una redireccion de error (302)', () => {",
+                  "  pm.expect(pm.response.code, 'con prompt=none Keycloak nunca muestra UI').to.eql(302);",
+                  "});",
+                  "",
+                  "const location = pm.response.headers.get('Location') || '';",
+                  "",
+                  "pm.test('El error es login_required y llega al callback de la app B', () => {",
+                  "  pm.expect(location).to.have.string(pm.environment.get('redirectUriB'));",
+                  "  pm.expect(location).to.match(/[?&]error=login_required/);",
+                  "});",
+                  "",
+                  "pm.test('No se emite ningun code', () => {",
+                  "  pm.expect(location).to.not.match(/[?&]code=/);",
+                  "});",
+                  "",
+                  "pm.test('El state tambien vuelve en el caso de error', () => {",
+                  "  pm.expect(location).to.match(/[?&]state=/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          }
+        }
+      ]
+    }
+  ]
+}

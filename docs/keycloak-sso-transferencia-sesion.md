@@ -1,5 +1,9 @@
 # Transferencia de sesión entre aplicaciones (Keycloak)
 
+Este documento explica el mecanismo **desde el lado emisor** (esta app). Para el
+lado receptor —qué recibe la app destino y cómo implementarlo— ver
+[`guia-integracion-app-destino.md`](./guia-integracion-app-destino.md).
+
 ## Cómo se llama el mecanismo
 
 **SSO silencioso (_silent authentication_) sobre el Authorization Code Flow de OIDC**,
