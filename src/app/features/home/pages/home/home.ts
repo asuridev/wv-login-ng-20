@@ -23,9 +23,7 @@ import { HomeHeader } from '../../components/home-header';
           {{ partnerStore.bodyTitle() }}
         </h1>
 
-        <div
-          class="mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        >
+        <div class="mx-auto flex w-full max-w-5xl flex-wrap justify-center gap-4">
           @for (card of visibleCards(); track card.title) {
             <home-card
               [title]="card.title"
