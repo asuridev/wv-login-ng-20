@@ -5,7 +5,7 @@ interface SectionText {
 }
 
 interface CardText {
-  cardButton: { label: string; redirecTo: string; productType: number };
+  cardButton: { label: string; redirecTo?: string; productType: number };
   cardBadge: { label: string };
 }
 

@@ -50,13 +50,13 @@ export const cardifBancoDefaultText: PartnerText = {
         },
       },
       {
-        title: 'Portal Médico',
+        title: 'Mastips',
         text: '',
-        permission: 'card:medical',
+        permission: 'card:mastips',
         cardButton: {
           label: 'Ver ahora',
-          redirecTo: environment.cards.urlRedirect.medical,
-          // TODO: confirmar el productType real del Portal Médico con negocio.
+          redirecTo: environment.cards.urlRedirect.mastips,
+          // TODO: confirmar el productType real de Mastips con negocio.
           productType: 5,
         },
         cardBadge: {

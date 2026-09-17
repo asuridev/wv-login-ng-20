@@ -60,7 +60,7 @@
         { "name": "card:protection", "description": "Ver card Seguro Tradicional" },
         { "name": "card:modular", "description": "Ver card Seguro Modular" },
         { "name": "card:progress", "description": "Ver card ¿Cómo voy?" },
-        { "name": "card:medical", "description": "Ver card Portal Médico" }
+        { "name": "card:mastips", "description": "Ver card Mastips" }
       ]
     }
   },
@@ -75,7 +75,7 @@
       "attributes": { "partner_id": ["11"] },
       "credentials": [{ "type": "password", "value": "test1234", "temporary": false }],
       "clientRoles": {
-        "webviewlogin": ["card:protection", "card:modular", "card:progress", "card:medical"]
+        "webviewlogin": ["card:protection", "card:modular", "card:progress", "card:mastips"]
       }
     },
     {
@@ -111,7 +111,7 @@
       "attributes": { "partner_id": ["11", "19"] },
       "credentials": [{ "type": "password", "value": "test1234", "temporary": false }],
       "clientRoles": {
-        "webviewlogin": ["card:protection", "card:modular", "card:progress", "card:medical"]
+        "webviewlogin": ["card:protection", "card:modular", "card:progress", "card:mastips"]
       }
     }
   ]

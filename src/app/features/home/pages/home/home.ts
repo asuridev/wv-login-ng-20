@@ -31,7 +31,7 @@ import { HomeHeader } from '../../components/home-header';
               [title]="card.title"
               [labelButton]="card.cardButton.label"
               [labelBadge]="card.cardBadge.label"
-              [redirectTo]="card.cardButton.redirecTo"
+              [redirectTo]="card.cardButton.redirecTo ?? ''"
               [productType]="card.cardButton.productType"
             />
           }
@@ -57,9 +57,14 @@ export default class Home {
     return Array.isArray(roles) ? roles : [];
   });
 
+  /**
+   * Una card se renderiza solo si su URL destino está configurada en el environment
+   * (el interruptor de despliegue por producto) y el usuario tiene su permiso.
+   */
   protected readonly visibleCards = computed(() =>
     this.partnerStore
       .cards()
+      .filter((card) => !!card.cardButton.redirecTo?.trim())
       .filter((card) => !card.permission || this.userPermissions().includes(card.permission))
   );
 

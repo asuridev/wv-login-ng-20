@@ -44,7 +44,7 @@ export const environment = {
       protection: 'https://webview-uat.cardif.com.co',
       modular: 'https://webview-uat.cardif.com.co',
       progress: 'https://webview-uat.cardif.com.co',
-      medical: 'https://webview-uat.cardif.com.co',
+      mastips: 'https://webview-uat.cardif.com.co',
     },
   },
   keycloak: {

@@ -29,7 +29,7 @@ Contraseña de todos: `test1234`.
 
 | usuario           | `partner_id` | roles de cliente (`webviewlogin`)                          | escenario                                     |
 | ----------------- | ------------ | ---------------------------------------------------------- | --------------------------------------------- |
-| `full.occidente`  | `11`         | `card:protection`, `card:modular`, `card:progress`, `card:medical` | `/occidente` con las 4 cards           |
+| `full.occidente`  | `11`         | `card:protection`, `card:modular`, `card:progress`, `card:mastips` | `/occidente` con las 4 cards           |
 | `parcial.tuya`    | `19`         | `card:protection`, `card:progress`                         | `/tuya` con 2 cards; `/occidente` → not-found |
 | `sinroles.bogota` | `10`         | —                                                          | `/bogota` sin cards                           |
 | `multi.partner`   | `11`, `19`   | las 4                                                      | `/occidente` y `/tuya` accesibles             |
