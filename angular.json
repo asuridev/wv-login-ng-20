@@ -39,15 +39,6 @@
                   "maximumError": "8kB"
                 }
               ],
-              "assets": [
-                {
-                  "glob": "**/*",
-                  "input": "public",
-                  "ignore": [
-                    "assets/env/env.js"
-                  ]
-                }
-              ],
               "outputHashing": "all",
               "fileReplacements": [
                 {
@@ -62,15 +53,6 @@
                   "type": "initial",
                   "maximumWarning": "700kB",
                   "maximumError": "1MB"
-                }
-              ],
-              "assets": [
-                {
-                  "glob": "**/*",
-                  "input": "public",
-                  "ignore": [
-                    "assets/env/env.js"
-                  ]
                 }
               ],
               "outputHashing": "all",

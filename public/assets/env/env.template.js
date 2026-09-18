@@ -1,10 +1,13 @@
 (function (window) {
   window["env"] = window["env"] || {};
 
-  // Cards desplegadas por partner: JSON en base64 (ver dev/cards/README.md).
-  // envsubst solo sustituye las variables escritas literalmente aqui, asi que
-  // un partner nuevo exige agregar su linea y reconstruir la imagen.
-  window["env"]["SETTING_CARDS_OCCIDENTE"] = "${SETTING_CARDS_OCCIDENTE}";
-  window["env"]["SETTING_CARDS_TUYA"] = "${SETTING_CARDS_TUYA}";
-  window["env"]["SETTING_CARDS_BOGOTA"] = "${SETTING_CARDS_BOGOTA}";
+  // Configuracion de runtime inyectada por el contenedor: envsubst sustituye
+  // cada ${VAR} al arrancar y nginx sirve el resultado en /assets/env/env.js.
+  // Una variable no definida queda como cadena vacia, que CustomWindow trata
+  // como ausente para que aplique el valor por defecto del environment.
+  window["env"]["URL_KEYCLOAK"] = "${URL_KEYCLOAK}";
+  window["env"]["KEYCLOAK_REALM"] = "${KEYCLOAK_REALM}";
+  window["env"]["KEYCLOAK_CLIENT_ID"] = "${KEYCLOAK_CLIENT_ID}";
+  window["env"]["KEYCLOAK_REDIRECT_CLIENT_ID"] = "${KEYCLOAK_REDIRECT_CLIENT_ID}";
+  window["env"]["URL_PERSISTENCE_API"] = "${URL_PERSISTENCE_API}";
 })(this);

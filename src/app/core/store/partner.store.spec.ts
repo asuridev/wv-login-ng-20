@@ -4,19 +4,12 @@ import { TestBed } from '@angular/core/testing';
 import { BANKS_CONFIG_DEFAULT } from '../config/partners/configurations/banks-config';
 import { PartnerStore } from './partner.store';
 
-type WindowWithEnv = Window & { env?: Record<string, string> };
-
 describe('PartnerStore', () => {
   let store: InstanceType<typeof PartnerStore>;
-  const testWindow = window as WindowWithEnv;
 
   beforeEach(() => {
     TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
     store = TestBed.inject(PartnerStore);
-  });
-
-  afterEach(() => {
-    delete testWindow.env;
   });
 
   it('arranca sin partner resuelto', () => {
@@ -33,33 +26,17 @@ describe('PartnerStore', () => {
     expect(store.bodyTitle()).toBe('¿Qué quieres hacer hoy?');
   });
 
-  it('usa las cards del configmap cuando el partner declara su variable', () => {
-    const cards = [
-      {
-        key: 'mastips',
-        title: 'Mastips',
-        badge: 'Tus avances',
-        button: 'Ver ahora',
-        productType: 5,
-        permission: 'card:mastips',
-        url: 'https://webview-uat.cardif.com.co',
-      },
-    ];
-    const bytes = new TextEncoder().encode(JSON.stringify(cards));
-    testWindow.env = { SETTING_CARDS_OCCIDENTE: btoa(String.fromCharCode(...bytes)) };
-
+  it('toma las cards del JSON del partner', () => {
     store.setPartner('occidente');
+    expect(store.cards().map((card) => card.key)).toEqual(['protection', 'mastips']);
 
-    expect(store.cards().length).toBe(1);
-    expect(store.cards()[0].title).toBe('Mastips');
-    // El resto de los textos del partner sigue viniendo del código.
-    expect(store.bodyTitle()).toBe('¿Qué quieres hacer hoy?');
+    store.setPartner('tuya');
+    expect(store.cards().length).toBe(4);
   });
 
-  it('no muestra cards cuando el partner no declara su variable', () => {
-    delete testWindow.env;
-
-    store.setPartner('occidente');
+  it('no muestra cards cuando el partner no declara las suyas', () => {
+    // `cardif-banco-default` no tiene entrada en el registro de cards.
+    store.setPartner('cardif-banco-default');
 
     expect(store.cards()).toEqual([]);
     // Los textos fijos del partner siguen viniendo del código.

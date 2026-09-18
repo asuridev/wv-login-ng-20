@@ -2,6 +2,8 @@ interface SectionText {
   title: string;
   text: string;
   permission?: string;
+  /** Identificador estable de la card; se usa como `track` del `@for`. */
+  key?: string;
 }
 
 interface CardText {
@@ -12,9 +14,9 @@ interface CardText {
 export type PartnerCardText = SectionText & CardText;
 
 /**
- * Card tal como viaja en el configmap (`SETTING_CARDS_<PARTNER>`), antes de
- * mapearse a `PartnerCardText`. Estructura plana a proposito: la edita ops,
- * no el equipo de front.
+ * Card tal como se declara en `partners/cards/<partner>.json`, antes de
+ * mapearse a `PartnerCardText`. Estructura plana a proposito: es el archivo que
+ * se edita al dar de alta o cambiar un producto.
  */
 export interface PartnerCardConfig {
   key: string;
@@ -22,7 +24,8 @@ export interface PartnerCardConfig {
   badge: string;
   button: string;
   productType: number;
-  url: string;
+  /** URL base del destino. `default` aplica salvo que el entorno la sobrescriba. */
+  url: { default: string } & Partial<Record<string, string>>;
   permission?: string;
 }
 

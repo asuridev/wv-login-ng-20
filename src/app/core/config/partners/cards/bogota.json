@@ -6,7 +6,10 @@
     "button": "Ver ahora",
     "productType": 1,
     "permission": "card:protection",
-    "url": "https://webview-uat.cardif.com.co"
+    "url": {
+      "default": "https://webview-uat.cardif.com.co",
+      "production": "https://webview.cardif.com.co"
+    }
   },
   {
     "key": "modular",
@@ -15,6 +18,9 @@
     "button": "Ver ahora",
     "productType": 4,
     "permission": "card:modular",
-    "url": "https://webview-uat.cardif.com.co"
+    "url": {
+      "default": "https://webview-uat.cardif.com.co",
+      "production": "https://webview.cardif.com.co"
+    }
   }
 ]

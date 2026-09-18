@@ -1,120 +1,67 @@
+import { environment } from '../../../environments/environment';
 import { resolvePartnerCards } from './partner-cards-source';
 
-type WindowWithEnv = Window & { env?: Record<string, string> };
-
-/** Mismo encoding que `dev/cards/encode.js`: JSON -> UTF-8 -> base64. */
-function encode(value: unknown): string {
-  const bytes = new TextEncoder().encode(JSON.stringify(value));
-
-  return btoa(String.fromCharCode(...bytes));
-}
-
-const VALID_CARD = {
-  key: 'protection',
-  title: 'Seguro Tradicional',
-  badge: 'A tu medida',
-  button: 'Ver ahora',
-  productType: 1,
-  permission: 'card:protection',
-  url: 'https://webview-uat.cardif.com.co',
-};
-
 describe('resolvePartnerCards', () => {
-  const testWindow = window as WindowWithEnv;
-
-  beforeEach(() => {
-    testWindow.env = {};
-    spyOn(console, 'error');
+  it('devuelve lista vacía para un partner sin entrada en el registro', () => {
+    expect(resolvePartnerCards('no-existe')).toEqual([]);
   });
 
-  afterEach(() => {
-    delete testWindow.env;
-  });
+  it('mapea las cards del JSON al modelo que consume el template', () => {
+    const [card] = resolvePartnerCards('occidente');
 
-  it('devuelve lista vacía cuando el partner no declara la variable', () => {
-    expect(resolvePartnerCards('occidente')).toEqual([]);
-  });
-
-  it('devuelve lista vacía cuando la variable está vacía', () => {
-    testWindow.env = { SETTING_CARDS_OCCIDENTE: '' };
-
-    expect(resolvePartnerCards('occidente')).toEqual([]);
-  });
-
-  it('convierte los guiones del partnerId en guiones bajos', () => {
-    testWindow.env = { SETTING_CARDS_CARDIF_BANCO_DEFAULT: encode([VALID_CARD]) };
-
-    expect(resolvePartnerCards('cardif-banco-default').length).toBe(1);
-  });
-
-  it('mapea una card válida al modelo que consume el template', () => {
-    testWindow.env = { SETTING_CARDS_OCCIDENTE: encode([VALID_CARD]) };
-
-    expect(resolvePartnerCards('occidente')).toEqual([
-      {
-        title: 'Seguro Tradicional',
-        text: '',
-        permission: 'card:protection',
-        cardButton: {
-          label: 'Ver ahora',
-          redirecTo: 'https://webview-uat.cardif.com.co',
-          productType: 1,
-        },
-        cardBadge: { label: 'A tu medida' },
+    expect(card).toEqual({
+      key: 'protection',
+      title: 'Seguro Tradicional',
+      text: '',
+      permission: 'card:protection',
+      cardButton: {
+        label: 'Ver ahora',
+        redirecTo: jasmine.any(String),
+        productType: 1,
       },
+      cardBadge: { label: 'A tu medida' },
+    });
+  });
+
+  it('respeta el orden del array como orden de render', () => {
+    expect(resolvePartnerCards('occidente').map((card) => card.key)).toEqual([
+      'protection',
+      'mastips',
     ]);
   });
 
   it('preserva los acentos del copy', () => {
-    testWindow.env = {
-      SETTING_CARDS_TUYA: encode([{ ...VALID_CARD, key: 'progress', title: '¿Cómo voy?' }]),
-    };
+    const progress = resolvePartnerCards('tuya').find((card) => card.key === 'progress');
 
-    expect(resolvePartnerCards('tuya')[0].title).toBe('¿Cómo voy?');
+    expect(progress?.title).toBe('¿Cómo voy?');
   });
 
-  it('respeta el orden del array como orden de render', () => {
-    const second = { ...VALID_CARD, key: 'mastips', title: 'Mastips', productType: 5 };
-    testWindow.env = { SETTING_CARDS_TUYA: encode([second, VALID_CARD]) };
+  // La suite corre con environment.test.ts (environmentName: 'test'), que los
+  // JSON no sobrescriben: debe caer al `default`.
+  it('usa la URL `default` cuando el entorno activo no tiene override', () => {
+    const [card] = resolvePartnerCards('occidente');
 
-    expect(resolvePartnerCards('tuya').map((card) => card.title)).toEqual([
-      'Mastips',
-      'Seguro Tradicional',
-    ]);
+    expect(environment.environmentName).toBe('test');
+    expect(card.cardButton.redirecTo).toBe('https://webview-uat.cardif.com.co');
   });
 
-  it('acepta una card sin permission', () => {
-    const { permission, ...sinPermiso } = VALID_CARD;
-    testWindow.env = { SETTING_CARDS_OCCIDENTE: encode([sinPermiso]) };
+  it('usa el override del entorno activo cuando el JSON lo declara', () => {
+    const original = environment.environmentName;
+    // `environment` es el módulo que lee `resolveUrl`; se restaura al terminar.
+    (environment as { environmentName: string }).environmentName = 'production';
 
-    expect(resolvePartnerCards('occidente')[0].permission).toBeUndefined();
+    try {
+      expect(resolvePartnerCards('occidente')[0].cardButton.redirecTo).toBe(
+        'https://webview.cardif.com.co'
+      );
+    } finally {
+      (environment as { environmentName: string }).environmentName = original;
+    }
   });
 
-  it('devuelve lista vacía cuando el base64 es ilegible', () => {
-    testWindow.env = { SETTING_CARDS_OCCIDENTE: 'no-es-base64-valido!!' };
-
-    expect(resolvePartnerCards('occidente')).toEqual([]);
-    expect(console.error).toHaveBeenCalled();
-  });
-
-  it('devuelve lista vacía cuando el JSON no es un array', () => {
-    testWindow.env = { SETTING_CARDS_OCCIDENTE: encode({ cards: [VALID_CARD] }) };
-
-    expect(resolvePartnerCards('occidente')).toEqual([]);
-    expect(console.error).toHaveBeenCalled();
-  });
-
-  it('descarta solo la entrada inválida y conserva el resto', () => {
-    const sinUrl = { ...VALID_CARD, key: 'modular', url: '' };
-    const productTypeTexto = { ...VALID_CARD, key: 'progress', productType: '0' };
-    testWindow.env = {
-      SETTING_CARDS_OCCIDENTE: encode([sinUrl, VALID_CARD, productTypeTexto]),
-    };
-
-    const cards = resolvePartnerCards('occidente');
-
-    expect(cards.length).toBe(1);
-    expect(cards[0].title).toBe('Seguro Tradicional');
-    expect(console.error).toHaveBeenCalledTimes(2);
+  it('cada partner declara su propio conjunto de cards', () => {
+    expect(resolvePartnerCards('occidente').length).toBe(2);
+    expect(resolvePartnerCards('tuya').length).toBe(4);
+    expect(resolvePartnerCards('bogota').length).toBe(2);
   });
 });
