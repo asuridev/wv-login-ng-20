@@ -11,15 +11,19 @@ import tuya from './partners/cards/tuya.json';
  * Es una decisión deliberada — las cards cambian poco y el equipo prefiere el
  * costo del redespliegue antes que sostener configuración fuera del repositorio.
  */
-const PARTNER_CARDS: Record<string, PartnerCardConfig[]> = { occidente, tuya, bogota };
+export const PARTNER_CARDS: Record<string, PartnerCardConfig[]> = { occidente, tuya, bogota };
 
 /** El override del entorno activo gana sobre `default`. */
 function resolveUrl(url: PartnerCardConfig['url']): string {
   return url[environment.environmentName] ?? url.default;
 }
 
-/** Nota: `redirecTo` conserva el typo historico del modelo. */
-function toCardText(card: PartnerCardConfig): PartnerCardText {
+/**
+ * Traduce una card del JSON al modelo que consumen store y template.
+ * Exportada para poder probarla con fixtures, sin depender del contenido de los
+ * JSON reales. Nota: `redirecTo` conserva el typo historico del modelo.
+ */
+export function toCardText(card: PartnerCardConfig): PartnerCardText {
   return {
     key: card.key,
     title: card.title,

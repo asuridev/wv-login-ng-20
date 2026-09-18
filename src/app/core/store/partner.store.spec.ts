@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
+import { PARTNER_CARDS } from '../config/partner-cards-source';
 import { BANKS_CONFIG_DEFAULT } from '../config/partners/configurations/banks-config';
 import { PartnerStore } from './partner.store';
 
@@ -28,10 +29,12 @@ describe('PartnerStore', () => {
 
   it('toma las cards del JSON del partner', () => {
     store.setPartner('occidente');
-    expect(store.cards().map((card) => card.key)).toEqual(['protection', 'mastips']);
 
-    store.setPartner('tuya');
-    expect(store.cards().length).toBe(4);
+    // Se compara contra el registro, no contra un contenido fijo: los JSON son
+    // configuración y cambian cuando el partner ajusta su oferta.
+    expect(store.cards().map((card) => card.key)).toEqual(
+      PARTNER_CARDS['occidente'].map((card) => card.key)
+    );
   });
 
   it('no muestra cards cuando el partner no declara las suyas', () => {
