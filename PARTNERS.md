@@ -36,7 +36,7 @@ poco— antes que sostener configuración fuera del repositorio.
    el registro `PARTNER_CARDS`, que importa estáticamente un JSON por partner:
 
    ```ts
-   const PARTNER_CARDS: Record<string, PartnerCardConfig[]> = { occidente, tuya, bogota };
+   export const PARTNER_CARDS: Record<string, PartnerCardConfig[]> = { occidente, tuya, bogota };
    ```
 
    Un partner sin entrada en ese registro no muestra ninguna card.
@@ -173,12 +173,18 @@ registrarlo en `src/app/core/config/partner-cards-source.ts`:
 ```ts
 import santander from './partners/cards/santander.json';
 
-const PARTNER_CARDS: Record<string, PartnerCardConfig[]> = {
+export const PARTNER_CARDS: Record<string, PartnerCardConfig[]> = {
   occidente, tuya, bogota, santander,
 };
 ```
 
 Sin el import el JSON no entra al bundle y el partner sale sin cards.
+
+**Si el host de producción difiere del de UAT, declarar el override**: sin la
+clave `production` en `url`, el build productivo resuelve `default` sin avisar
+—el `?? url.default` que evita el crash es justo lo que oculta el olvido—. Las
+claves válidas son los `environmentName` reales (`development`, `local`, `qa`,
+`test`, `production`); una mal escrita se ignora en silencio.
 
 ### Paso 5 — Keycloak
 
@@ -201,7 +207,19 @@ prueba con `"attributes": { "partner_id": ["25"] }` y los roles de card que
 correspondan. Actualizar la tabla de usuarios de
 [`dev/keycloak/README.md`](dev/keycloak/README.md).
 
-### Paso 7 — Verificar en local
+### Paso 7 — Verificar
+
+```bash
+npm test
+```
+
+La suite valida el JSON del partner nuevo sin que haya que escribir un test:
+`partner-cards-source.spec.ts` comprueba que las `key` sean únicas y no vacías
+—una duplicada rompe el `track` del `@for`— y que toda card resuelva una URL de
+redirección, porque una card sin URL se filtra en `home.ts` y nunca se
+renderiza. Un JSON con un campo faltante o mal tipado ni siquiera compila.
+
+Después, en el navegador:
 
 ```bash
 podman compose -f dev/keycloak/podman-compose.yml up -d
@@ -235,7 +253,8 @@ ibmcloud ce app update --name <app> --image <registro>/<imagen>:<tag>
 | 4 | JSON de cards + import en el registro | `core/config/partners/cards/`, `core/config/partner-cards-source.ts` |
 | 5 | Claim, roles y redirect URIs | Keycloak |
 | 6 | Usuario de prueba | `dev/keycloak/realm/…` |
-| 7 | Imagen nueva y `app update` | Code Engine |
+| 7 | `npm test` y prueba en navegador | local |
+| 8 | Imagen nueva y `app update` | Code Engine |
 
-Los pasos 1 a 4 son un cambio de código: PR, imagen nueva y despliegue. Solo los
-pasos 5 y 6 se resuelven fuera del repositorio.
+Los pasos 1 a 4 son un cambio de código: PR, imagen nueva y despliegue. Los
+pasos 5 y 6 se resuelven fuera del repositorio, en Keycloak.
