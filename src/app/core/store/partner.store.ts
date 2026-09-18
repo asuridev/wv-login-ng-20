@@ -1,6 +1,7 @@
 import { computed } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 
+import { resolvePartnerCards } from '../config/partner-cards-source';
 import { DEFAULT_PARTNER_TEXT, PARTNERS_TEXT } from '../config/partners-register';
 import { BANKS_CONFIG, BANKS_CONFIG_DEFAULT } from '../config/partners/configurations/banks-config';
 import { BankConfig, PartnerText } from '../models/partner-theme-model';
@@ -41,13 +42,23 @@ export const PartnerStore = signalStore(
     cards: computed(() => text()?.body.cards ?? []),
   })),
   withMethods((store) => ({
-    /** Resuelve un `partnerId` de ruta contra la configuración, con fallback. */
+    /**
+     * Resuelve un `partnerId` de ruta contra la configuración, con fallback.
+     *
+     * Los textos fijos vienen del código; las cards, del configmap del
+     * contenedor (`SETTING_CARDS_<PARTNER>`).
+     */
     setPartner(partnerId: string): void {
       const resolvedId = BANKS_CONFIG[partnerId] ? partnerId : BANKS_CONFIG_DEFAULT;
+      const baseText = PARTNERS_TEXT[resolvedId] ?? PARTNERS_TEXT[DEFAULT_PARTNER_TEXT];
+
       patchState(store, {
         partnerId: resolvedId,
         config: BANKS_CONFIG[resolvedId],
-        text: PARTNERS_TEXT[resolvedId] ?? PARTNERS_TEXT[DEFAULT_PARTNER_TEXT],
+        text: {
+          ...baseText,
+          body: { ...baseText.body, cards: resolvePartnerCards(resolvedId) },
+        },
       });
     },
     setIp(ip: string): void {

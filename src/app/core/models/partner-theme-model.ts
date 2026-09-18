@@ -11,6 +11,21 @@ interface CardText {
 
 export type PartnerCardText = SectionText & CardText;
 
+/**
+ * Card tal como viaja en el configmap (`SETTING_CARDS_<PARTNER>`), antes de
+ * mapearse a `PartnerCardText`. Estructura plana a proposito: la edita ops,
+ * no el equipo de front.
+ */
+export interface PartnerCardConfig {
+  key: string;
+  title: string;
+  badge: string;
+  button: string;
+  productType: number;
+  url: string;
+  permission?: string;
+}
+
 export interface PartnerText {
   header: SectionText;
   footer: SectionText;

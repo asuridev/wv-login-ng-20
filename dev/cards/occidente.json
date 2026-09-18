@@ -1,0 +1,20 @@
+[
+  {
+    "key": "protection",
+    "title": "Seguro Tradicional",
+    "badge": "A tu medida",
+    "button": "Ver ahora",
+    "productType": 1,
+    "permission": "card:protection",
+    "url": "https://webview-uat.cardif.com.co"
+  },
+  {
+    "key": "mastips",
+    "title": "Mastips",
+    "badge": "Tus avances",
+    "button": "Ver ahora",
+    "productType": 5,
+    "permission": "card:mastips",
+    "url": "https://webview-uat.cardif.com.co"
+  }
+]

@@ -34,14 +34,6 @@ export const environment = {
     ip: 'https://api.ipify.org?format=json',
     persistenteApi: 'https://api-services.cardifnet.com/co/management/v1/sale_completed',
   },
-  cards: {
-    urlRedirect: {
-      protection: 'https://webview.cardif.com.co',
-      modular: 'https://webview.cardif.com.co',
-      progress: 'https://webview.cardif.com.co',
-      mastips: 'https://webview.cardif.com.co',
-    },
-  },
   keycloak: {
     issuer: 'https://sso-lam-assurance.echonet/auth',
     realm: 'sales-advisors-co',

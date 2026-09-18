@@ -46,3 +46,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Config runtime generada para desarrollo local (`npm run cards:encode -- --env-js`).
+# En el contenedor la genera envsubst a partir de env.template.js.
+/public/assets/env/env.js

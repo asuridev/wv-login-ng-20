@@ -1,5 +1,25 @@
 import { PartnerText } from '../models/partner-theme-model';
-import { cardifBancoDefaultText } from './partners/text/cardif-banco-default-text';
+
+/**
+ * Textos del partner que no dependen del configmap: encabezado, título del
+ * cuerpo y pie. Las cards ya no viven aquí — las declara cada partner en su
+ * variable `SETTING_CARDS_<PARTNER>` (ver `partner-cards-source.ts`).
+ */
+const cardifBancoDefaultText: PartnerText = {
+  header: {
+    title: '',
+    text: '',
+  },
+  body: {
+    title: '¿Qué quieres hacer hoy?',
+    text: '',
+    cards: [],
+  },
+  footer: {
+    title: '',
+    text: '',
+  },
+};
 
 /** Registro de textos por partner. Agregar socios aquí. */
 export const PARTNERS_TEXT: Record<string, PartnerText> = {

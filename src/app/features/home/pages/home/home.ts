@@ -24,7 +24,7 @@ import { HomeHeader } from '../../components/home-header';
         </h1>
 
         <div class="mx-auto flex w-full max-w-5xl flex-wrap justify-center gap-4">
-          @for (card of visibleCards(); track card.title) {
+          @for (card of visibleCards(); track card.cardButton.productType) {
             <home-card
               [title]="card.title"
               [labelButton]="card.cardButton.label"
@@ -56,8 +56,8 @@ export default class Home {
   });
 
   /**
-   * Una card se renderiza solo si su URL destino está configurada en el environment
-   * (el interruptor de despliegue por producto) y el usuario tiene su permiso.
+   * Una card se renderiza solo si su URL destino está configurada en el
+   * configmap del partner y el usuario tiene su permiso.
    */
   protected readonly visibleCards = computed(() =>
     this.partnerStore
