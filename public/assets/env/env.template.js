@@ -8,6 +8,8 @@
   window["env"]["URL_KEYCLOAK"] = "${URL_KEYCLOAK}";
   window["env"]["KEYCLOAK_REALM"] = "${KEYCLOAK_REALM}";
   window["env"]["KEYCLOAK_CLIENT_ID"] = "${KEYCLOAK_CLIENT_ID}";
-  window["env"]["KEYCLOAK_REDIRECT_CLIENT_ID"] = "${KEYCLOAK_REDIRECT_CLIENT_ID}";
+  // Un client de Keycloak por flujo de card (ver RedirectClientIds).
+  window["env"]["KEYCLOAK_SALES_CLIENT_ID"] = "${KEYCLOAK_SALES_CLIENT_ID}";
+  window["env"]["KEYCLOAK_COMMERCIAL_CLIENT_ID"] = "${KEYCLOAK_COMMERCIAL_CLIENT_ID}";
   window["env"]["URL_PERSISTENCE_API"] = "${URL_PERSISTENCE_API}";
 })(this);

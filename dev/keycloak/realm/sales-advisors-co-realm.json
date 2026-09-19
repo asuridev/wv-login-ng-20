@@ -52,6 +52,17 @@
       "redirectUris": ["*"],
       "webOrigins": ["*"],
       "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
+    },
+    {
+      "clientId": "webcomercial",
+      "name": "Destino comercial (redirect SSO, flujo commercial)",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
     }
   ],
   "roles": {

@@ -1,4 +1,12 @@
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { provideTanStackQuery, QueryClient } from '@tanstack/angular-query-experimental';
+
 import { environment } from '../../../environments/environment';
+import { CardFlowResolver } from '../../features/home/flows/card-flow-resolver';
+import { MasheryQueries } from '../../features/home/queries/mashery-queries';
+import { RedirectService } from '../services/redirect';
+import { DEFAULT_CARD_FLOW, isCardFlowName } from '../models/card-flow-model';
 import { PartnerCardConfig } from '../models/partner-theme-model';
 import { PARTNER_CARDS, resolvePartnerCards, toCardText } from './partner-cards-source';
 
@@ -29,9 +37,25 @@ function withEnvironmentName(name: string, assertion: () => void): void {
 }
 
 describe('toCardText', () => {
+  it('aplica el flujo por defecto cuando la card no declara `flow`', () => {
+    expect(toCardText(FIXTURE).flow).toBe(DEFAULT_CARD_FLOW);
+  });
+
+  it('respeta el flujo declarado por la card', () => {
+    expect(toCardText({ ...FIXTURE, flow: 'commercial' }).flow).toBe('commercial');
+  });
+
+  // No se puede validar en compilación (un JSON importado no infiere
+  // literales), así que el guard evita que un typo deje la card sin flujo.
+  // Quien lo detecta de verdad es la invariante del final de este archivo.
+  it('cae al flujo por defecto si el declarado no existe', () => {
+    expect(toCardText({ ...FIXTURE, flow: 'no-existe' }).flow).toBe(DEFAULT_CARD_FLOW);
+  });
+
   it('mapea la card al modelo que consume el template', () => {
     expect(toCardText(FIXTURE)).toEqual({
       key: 'demo',
+      flow: 'sales',
       title: 'Card de prueba',
       text: '',
       permission: 'card:demo',
@@ -94,6 +118,44 @@ describe('JSON de cards de los partners', () => {
       expect(new Set(keys).size)
         .withContext(`${partnerId}: hay claves duplicadas (rompen el track del @for)`)
         .toBe(keys.length);
+    }
+  });
+
+  // Sobre el JSON crudo, no sobre el resultado de `toCardText`: el guard ya
+  // habría convertido un typo en el flujo por defecto y no quedaría rastro.
+  it('declara flujos existentes en el JSON de cada partner', () => {
+    for (const [partnerId, cards] of Object.entries(PARTNER_CARDS)) {
+      for (const card of cards) {
+        if (card.flow === undefined) continue;
+
+        expect(isCardFlowName(card.flow))
+          .withContext(`${partnerId} / ${card.key}: flujo desconocido "${card.flow}"`)
+          .toBeTrue();
+      }
+    }
+  });
+
+  it('resuelve una implementación para el flujo de cada card', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideTanStackQuery(new QueryClient()),
+        // Los flujos reales dependen de Keycloak a través de RedirectService.
+        { provide: RedirectService, useValue: { redirectTo: () => Promise.resolve() } },
+        {
+          provide: MasheryQueries,
+          useValue: { sendSaleCompleted: () => ({ mutationFn: () => Promise.resolve({}) }) },
+        },
+      ],
+    });
+    const resolver = TestBed.inject(CardFlowResolver);
+
+    for (const partnerId of Object.keys(PARTNER_CARDS)) {
+      for (const card of resolvePartnerCards(partnerId)) {
+        expect(resolver.resolve(card.flow))
+          .withContext(`${partnerId} / ${card.key}`)
+          .toBeDefined();
+      }
     }
   });
 

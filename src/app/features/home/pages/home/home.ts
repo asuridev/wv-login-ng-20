@@ -31,12 +31,13 @@ import { HomeHeader } from '../../components/home-header';
               [labelBadge]="card.cardBadge.label"
               [redirectTo]="card.cardButton.redirecTo ?? ''"
               [productType]="card.cardButton.productType"
+              [flow]="card.flow"
             />
           }
         </div>
       </main>
 
-      <home-footer />
+      <home-footer />ty
     </div>
   `,
 })

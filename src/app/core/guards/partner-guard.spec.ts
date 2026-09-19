@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, convertToParamMap, Router, UrlTree } from '@angular/router';
 
+import { TEST_PARTNER } from '../config/partners-test-support';
 import { partnerGuard } from './partner-guard';
 
 describe('partnerGuard', () => {
@@ -25,7 +26,7 @@ describe('partnerGuard', () => {
 
   it('permite el acceso cuando el partnerId existe en BANKS_CONFIG', () => {
     const result = TestBed.runInInjectionContext(() =>
-      partnerGuard(routeWith('occidente'), {} as never)
+      partnerGuard(routeWith(TEST_PARTNER), {} as never)
     );
 
     expect(result).toBe(true);

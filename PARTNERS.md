@@ -88,6 +88,7 @@ partner:
     "button": "Ver ahora",
     "productType": 1,
     "permission": "card:protection",
+    "flow": "sales",
     "url": {
       "default": "https://webview-uat.cardif.com.co",
       "production": "https://webview.cardif.com.co"
@@ -101,9 +102,64 @@ partner:
   dentro del partner.
 - `permission` es opcional. Si se declara, la card además exige ese rol.
 - `url.default` es obligatoria; las demás claves son overrides opcionales por
-  `environmentName` (`development`, `local`, `qa`, `test`, `production`). La URL
-  es la base: el front le concatena `/wv_<partnerId>` antes de redirigir.
+  `environmentName` (`development`, `local`, `qa`, `test`, `production`). En
+  las cards `sales` la URL es la base y el front le concatena `/wv_<partnerId>`
+  antes de redirigir; en las `commercial` se usa tal cual.
 - La URL puede diferir por partner: por eso vive aquí y no en el environment.
+- `flow` define **qué ocurre al pulsar la card**. Es opcional —omitido aplica
+  `sales`—, pero por convención todas las cards lo declaran de forma explícita,
+  para que la configuración diga lo que hace sin depender de un valor implícito.
+
+### Flujos de activación
+
+Cada flujo sale hacia su destino por **su propio client de Keycloak**, definido
+en `environment.keycloak.redirectClientIds`. Es configuración de
+infraestructura —cada realm tiene sus clients—, por eso vive en el environment y
+no en el JSON de la card. En producción se inyecta en runtime con
+`KEYCLOAK_SALES_CLIENT_ID` y `KEYCLOAK_COMMERCIAL_CLIENT_ID`.
+
+Lo que pasa al pulsar una card no es igual para todos los productos, así que
+cada card declara su flujo y el componente solo delega. Valores disponibles:
+
+| `flow` | Qué hace |
+|---|---|
+| `sales` (por defecto) | Registra la venta en Mashery (`sale_completed`) y, solo si esa llamada tuvo éxito, traspasa la sesión a `<url>/wv_<partnerId>`. Si falla, muestra un toast y no redirige |
+| `commercial` | Traspasa la sesión a `<url>` tal cual, sin sufijo de partner y sin registrar venta. Para cards que no originan una venta: consultas, contenido para el asesor |
+
+Los nombres describen **el tipo de operación de negocio**, no el mecanismo de
+traspaso de sesión. Así, si un flujo comercial pasara mañana a salir a un
+tercero con su propio login, el nombre seguiría siendo correcto.
+
+El discriminador es este campo y **no el `productType`** a propósito: el
+`productType` es un dato de negocio que viaja al backend dentro del `state`, y
+dos productos distintos pueden compartir flujo.
+
+A diferencia del resto del JSON, **`flow` no lo valida el compilador**:
+TypeScript infiere `string` —no el literal— para los campos de texto de un JSON
+importado. Un valor desconocido cae al flujo por defecto en runtime, y quien lo
+detecta es `partner-cards-source.spec.ts`, que comprueba sobre el JSON crudo que
+todo `flow` declarado exista. Por eso `npm test` es parte del alta de un
+partner.
+
+#### Agregar un flujo nuevo
+
+1. Crear el servicio en `src/app/features/home/flows/<nombre>-flow.ts`,
+   `@Injectable({ providedIn: 'root' })`, implementando `CardFlow`. Recibe un
+   `CardFlowContext` (`url`, `productType`, `partnerId`) y **lanza** si falla:
+   el toast y el estado del botón los maneja `home-card.ts`, para que la
+   respuesta visual sea idéntica en todos los flujos.
+2. Añadir su literal a `CardFlowName` en
+   `src/app/core/models/card-flow-model.ts`.
+3. Registrarlo en `CardFlowResolver`. El `Record<CardFlowName, CardFlow>` hace
+   que el compilador exija este paso: no se puede añadir un literal y olvidar
+   la entrada.
+4. Declarar su client de Keycloak en `keycloak.redirectClientIds` de **los cinco
+   environments**, y pasarlo desde el flujo a `RedirectService.redirectTo()`.
+   También lo exige el compilador (`RedirectClientIds` es un
+   `Record<CardFlowName, string>`): un flujo sin client rompe el build en vez de
+   fallar en Keycloak después del click.
+
+No hay que tocar `home-card.ts` ni ningún flujo existente.
 
 **Validación:** la hace TypeScript al compilar, porque el JSON se importa como
 módulo tipado. Un campo faltante o con el tipo equivocado rompe el build. Lo que
@@ -167,7 +223,8 @@ existe** en el repo — de ahí el 404 de favicon en consola).
 
 ### Paso 4 — Cards
 
-Crear `src/app/core/config/partners/cards/santander.json` (ver formato arriba) y
+Crear `src/app/core/config/partners/cards/santander.json` (ver formato y flujos
+arriba) y
 registrarlo en `src/app/core/config/partner-cards-source.ts`:
 
 ```ts
@@ -193,9 +250,16 @@ claves válidas son los `environmentName` reales (`development`, `local`, `qa`,
 2. **Roles de card**: si el partner estrena un producto, crear el rol de cliente
    `card:<producto>` en `webviewlogin` y asignarlo.
 3. **Valid Redirect URIs**: `RedirectService` usa la `url` de cada card como
-   `redirect_uri` (`<url>/wv_santander/auth/callback`). Toda URL nueva debe
-   registrarse en el cliente `webtransversal`, o el flujo falla con
-   `invalid_redirect_uri` **después** del click, no antes.
+   `redirect_uri`, y tanto su forma como el client dependen del flujo:
+
+   | Flujo | Client | `redirect_uri` a registrar |
+   |---|---|---|
+   | `sales` | `redirectClientIds.sales` | `<url>/wv_santander/auth/callback` |
+   | `commercial` | `redirectClientIds.commercial` | `<url>/auth/callback` |
+
+   Cada URL nueva se registra en el client de su flujo, o el traspaso falla con
+   `invalid_redirect_uri` **después** del click, no antes. El realm local no
+   sirve para detectarlo: sus clients aceptan `redirectUris: ["*"]`.
 
 Esta es la dependencia que más suele morder en el primer despliegue: el código
 puede estar perfecto y el redirect igual falla.
@@ -215,9 +279,17 @@ npm test
 
 La suite valida el JSON del partner nuevo sin que haya que escribir un test:
 `partner-cards-source.spec.ts` comprueba que las `key` sean únicas y no vacías
-—una duplicada rompe el `track` del `@for`— y que toda card resuelva una URL de
-redirección, porque una card sin URL se filtra en `home.ts` y nunca se
-renderiza. Un JSON con un campo faltante o mal tipado ni siquiera compila.
+—una duplicada rompe el `track` del `@for`—, que toda card resuelva una URL de
+redirección —una card sin URL se filtra en `home.ts` y nunca se renderiza— y que
+el `flow` declarado exista, que es la única de las tres que el compilador no
+puede cubrir. Un JSON con un campo faltante o mal tipado ni siquiera compila.
+
+Las pruebas están desacopladas del contenido de la configuración a propósito:
+verifican invariantes y derivan los valores de la propia configuración, de modo
+que **renombrar una card, cambiar una URL o reordenarlas no rompe ningún test**.
+Lo que sí falla es un error real: un `flow` inexistente, una `key` duplicada o
+una card sin URL. Los partners de referencia salen de
+`core/config/partners-test-support.ts`, nunca de un slug escrito a mano.
 
 Después, en el navegador:
 

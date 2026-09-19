@@ -1,6 +1,8 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
+import { TEST_PARTNER } from '../../../core/config/partners-test-support';
+import { BANKS_CONFIG } from '../../../core/config/partners/configurations/banks-config';
 import { PartnerStore } from '../../../core/store/partner.store';
 import { HomeFooter } from './home-footer';
 
@@ -23,7 +25,7 @@ describe('HomeFooter', () => {
   });
 
   it('renderiza los logos del partner activo', () => {
-    partnerStore.setPartner('occidente');
+    partnerStore.setPartner(TEST_PARTNER);
 
     const fixture = TestBed.createComponent(HomeFooter);
     fixture.detectChanges();
@@ -32,10 +34,14 @@ describe('HomeFooter', () => {
       (fixture.nativeElement as HTMLElement).querySelectorAll('img')
     ).map((img) => img.getAttribute('src'));
 
-    expect(sources.length).toBe(4);
-    expect(sources).toContain('/assets/logos/logo-vigilado.svg');
-    expect(sources).toContain('/assets/logos/banco-occidente-logo.svg');
-    expect(sources).toContain('/assets/logos/grupo-aval-logo.svg');
-    expect(sources).toContain('/assets/logos/seguros-alfa-logo.svg');
+    // Las rutas se derivan de la configuración del partner: cambiar un logo en
+    // `banks-config.ts` no debe romper este test.
+    const { assets } = BANKS_CONFIG[TEST_PARTNER];
+    const esperados = [assets.logoVigilado, assets.logoFooter, assets.logoAval, assets.logoCardif];
+
+    expect(sources.length).toBe(esperados.length);
+    for (const logo of esperados) {
+      expect(sources).toContain(logo);
+    }
   });
 });

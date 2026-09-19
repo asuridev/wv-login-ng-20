@@ -1,3 +1,5 @@
+import { RedirectClientIds } from './keycloak-config-model';
+
 /**
  * Entorno de validación local: idéntico a `environment.ts` salvo el issuer de
  * Keycloak, que apunta al contenedor de `dev/keycloak/podman-compose.yml`.
@@ -43,7 +45,12 @@ export const environment = {
     issuer: 'http://localhost:8080/auth',
     realm: 'sales-advisors.co',
     clientId: 'webviewlogin',
-    redirectClintId: 'webtransversal',
+    // Clients del realm local (dev/keycloak/realm): uno por flujo, para poder
+    // comprobar que cada card sale por el suyo.
+    redirectClientIds: {
+      sales: 'webtransversal',
+      commercial: 'webcomercial',
+    } satisfies RedirectClientIds,
   },
   webViewBaseUrl: 'https://webview-dev.cardif.com.co',
   mastipsBaseUrl: 'https://app.mastips.cl/',

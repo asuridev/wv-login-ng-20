@@ -1,16 +1,16 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
-import { injectMutation } from '@tanstack/angular-query-experimental';
 
-import { RedirectService } from '../../../core/services/redirect';
+import { CardFlowName, DEFAULT_CARD_FLOW } from '../../../core/models/card-flow-model';
 import { PartnerStore } from '../../../core/store/partner.store';
 import { ToastStore } from '../../../core/store/toast.store';
 import { Badge } from '../../../shared/ui/badge';
 import { Button } from '../../../shared/ui/button';
 import { Card } from '../../../shared/ui/card';
-import { MasheryQueries } from '../queries/mashery-queries';
+import { CardFlowResolver } from '../flows/card-flow-resolver';
 
-const SALE_ERROR_TITLE = 'Ocurrió un error';
-const SALE_ERROR_MESSAGE = 'No fue posible iniciar el flujo de venta. Intenta nuevamente.';
+const ERROR_TITLE = 'Ocurrió un error';
+/** Genérico a propósito: el mismo texto sirve para cualquier flujo. */
+const ERROR_MESSAGE = 'No fue posible continuar. Intenta nuevamente.';
 
 @Component({
   selector: 'home-card',
@@ -37,40 +37,36 @@ export class HomeCard {
   readonly labelBadge = input('');
   readonly redirectTo = input('');
   readonly productType = input<number | undefined>(undefined);
+  readonly flow = input<CardFlowName>(DEFAULT_CARD_FLOW);
 
   private readonly partnerStore = inject(PartnerStore);
-  private readonly redirectService = inject(RedirectService);
   private readonly toastStore = inject(ToastStore);
-  private readonly masheryQueries = inject(MasheryQueries);
+  private readonly flowResolver = inject(CardFlowResolver);
 
-  private readonly saleCompleted = injectMutation(() => this.masheryQueries.sendSaleCompleted());
-
-  /** Bloquea el botón desde el click hasta que la mutación falla o la página navega. */
+  /** Bloquea el botón desde el click hasta que el flujo falla o la página navega. */
   protected readonly submitting = signal(false);
 
+  /**
+   * Qué ocurre al pulsar depende del flujo que declare la card; el componente
+   * solo delega. El manejo del error vive aquí a propósito: la respuesta visual
+   * debe ser la misma sea cual sea el flujo que haya fallado.
+   */
   async onClick(): Promise<void> {
     if (this.submitting()) return;
     this.submitting.set(true);
 
-    // Se fijan antes de mutar: RedirectService los lee para el `state` del auth URL.
-    this.partnerStore.setProductType(this.productType() ?? 0);
-    // Cada flujo de redirección viaja con su propio correlationId.
-    this.partnerStore.newCorrelationId();
-
     try {
-      await this.saleCompleted.mutateAsync();
+      await this.flowResolver.resolve(this.flow()).run({
+        url: this.redirectTo(),
+        productType: this.productType() ?? 0,
+        partnerId: this.partnerStore.partnerId() ?? '',
+      });
     } catch {
       // El error ya lo normaliza el errorInterceptor; aquí se avisa al usuario
       // y se evita el redirect.
-      this.toastStore.error(SALE_ERROR_TITLE, SALE_ERROR_MESSAGE);
+      this.toastStore.error(ERROR_TITLE, ERROR_MESSAGE);
+    } finally {
       this.submitting.set(false);
-      return;
     }
-
-    await this.redirectService.redirectTo(
-      `${this.redirectTo()}/wv_${this.partnerStore.partnerId()}`,
-      '/home'
-    );
-    this.submitting.set(false);
   }
 }

@@ -6,6 +6,7 @@
     "button": "Ver ahora",
     "productType": 1,
     "permission": "card:protection",
+    "flow": "sales",
     "url": {
       "default": "https://webview-uat.cardif.com.co",
       "production": "https://webview.cardif.com.co"
@@ -18,6 +19,7 @@
     "button": "Ver ahora",
     "productType": 4,
     "permission": "card:modular",
+    "flow": "sales",
     "url": {
       "default": "https://webview-uat.cardif.com.co",
       "production": "https://webview.cardif.com.co"

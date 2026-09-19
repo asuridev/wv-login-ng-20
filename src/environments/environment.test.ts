@@ -1,3 +1,5 @@
+import { RedirectClientIds } from './keycloak-config-model';
+
 export const environment = {
   production: false,
   staging: false,
@@ -38,7 +40,12 @@ export const environment = {
     issuer: 'http://localhost:8080/auth',
     realm: 'sales-advisors.co',
     clientId: 'webviewlogin',
-    redirectClintId: 'webtransversal',
+    // TODO: sustituir `commercial` por el client comercial real de este entorno.
+    // Mientras tanto usa el mismo que `sales`, así que el comportamiento no cambia.
+    redirectClientIds: {
+      sales: 'webtransversal',
+      commercial: 'webtransversal',
+    } satisfies RedirectClientIds,
   },
   webViewBaseUrl: 'https://webview-dev.cardif.com.co',
   mastipsBaseUrl: 'https://app.mastips.cl/',

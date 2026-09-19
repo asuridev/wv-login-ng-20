@@ -1,45 +1,55 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideTanStackQuery, QueryClient } from '@tanstack/angular-query-experimental';
 
-import { RedirectService } from '../../../core/services/redirect';
+import {
+  CardFlow,
+  CardFlowContext,
+  CardFlowName,
+  DEFAULT_CARD_FLOW,
+} from '../../../core/models/card-flow-model';
+import { TEST_PARTNER } from '../../../core/config/partners-test-support';
 import { PartnerStore } from '../../../core/store/partner.store';
 import { ToastStore } from '../../../core/store/toast.store';
-import { MasheryQueries } from '../queries/mashery-queries';
+import { CardFlowResolver } from '../flows/card-flow-resolver';
 import { HomeCard } from './home-card';
 
+/**
+ * El componente ya no conoce los pasos de ningún flujo: solo delega en el que
+ * declara la card. Por eso aquí se mockea el resolver y se prueba la
+ * delegación, el estado del botón y la respuesta visual al error — la mecánica
+ * de cada flujo se prueba en `flows/*.spec.ts`.
+ */
 describe('HomeCard', () => {
-  let redirectServiceSpy: jasmine.SpyObj<RedirectService>;
-  let mutationFn: jasmine.Spy;
+  let flowSpy: jasmine.SpyObj<CardFlow>;
+  let resolverSpy: jasmine.SpyObj<CardFlowResolver>;
   let partnerStore: InstanceType<typeof PartnerStore>;
   let toastStore: InstanceType<typeof ToastStore>;
 
   beforeEach(async () => {
-    redirectServiceSpy = jasmine.createSpyObj('RedirectService', ['redirectTo']);
-    redirectServiceSpy.redirectTo.and.resolveTo();
-    mutationFn = jasmine.createSpy('mutationFn').and.resolveTo({});
+    flowSpy = jasmine.createSpyObj('CardFlow', ['run']);
+    flowSpy.run.and.resolveTo();
+    resolverSpy = jasmine.createSpyObj('CardFlowResolver', ['resolve']);
+    resolverSpy.resolve.and.returnValue(flowSpy);
 
     await TestBed.configureTestingModule({
       imports: [HomeCard],
       providers: [
         provideZonelessChangeDetection(),
-        provideTanStackQuery(new QueryClient()),
-        { provide: RedirectService, useValue: redirectServiceSpy },
-        {
-          provide: MasheryQueries,
-          useValue: { sendSaleCompleted: () => ({ mutationFn }) },
-        },
+        { provide: CardFlowResolver, useValue: resolverSpy },
       ],
     }).compileComponents();
 
     partnerStore = TestBed.inject(PartnerStore);
-    partnerStore.setPartner('occidente');
+    partnerStore.setPartner(TEST_PARTNER);
 
     toastStore = TestBed.inject(ToastStore);
     toastStore.clear();
   });
 
-  function createComponent(productType?: number): ComponentFixture<HomeCard> {
+  function createComponent(
+    productType?: number,
+    flow?: CardFlowName
+  ): ComponentFixture<HomeCard> {
     const fixture = TestBed.createComponent(HomeCard);
     fixture.componentRef.setInput('title', 'Seguro Tradicional');
     fixture.componentRef.setInput('labelButton', 'Ver ahora');
@@ -47,6 +57,9 @@ describe('HomeCard', () => {
     fixture.componentRef.setInput('redirectTo', 'https://webview.test');
     if (productType !== undefined) {
       fixture.componentRef.setInput('productType', productType);
+    }
+    if (flow !== undefined) {
+      fixture.componentRef.setInput('flow', flow);
     }
     fixture.detectChanges();
     return fixture;
@@ -60,31 +73,37 @@ describe('HomeCard', () => {
     expect(compiled.querySelector('button')?.textContent).toContain('Ver ahora');
   });
 
-  it('registra la venta, fija el productType y redirige al webview del partner', async () => {
+  it('ejecuta el flujo declarado por la card con el contexto de la card', async () => {
+    const fixture = createComponent(5, 'commercial');
+
+    await fixture.componentInstance.onClick();
+
+    expect(resolverSpy.resolve).toHaveBeenCalledWith('commercial');
+    expect(flowSpy.run).toHaveBeenCalledWith({
+      url: 'https://webview.test',
+      productType: 5,
+      partnerId: TEST_PARTNER,
+    } satisfies CardFlowContext);
+  });
+
+  it('usa el flujo por defecto cuando la card no declara uno', async () => {
     const fixture = createComponent(1);
 
     await fixture.componentInstance.onClick();
 
-    expect(mutationFn).toHaveBeenCalled();
-    expect(partnerStore.productType()).toBe(1);
-    expect(redirectServiceSpy.redirectTo).toHaveBeenCalledWith(
-      'https://webview.test/wv_occidente',
-      '/home'
-    );
+    expect(resolverSpy.resolve).toHaveBeenCalledWith(DEFAULT_CARD_FLOW);
   });
 
-  it('no redirige cuando el registro de la venta falla', async () => {
-    mutationFn.and.rejectWith(new Error('boom'));
-    const fixture = createComponent(1);
+  it('usa productType 0 cuando el input viene sin valor', async () => {
+    const fixture = createComponent();
 
     await fixture.componentInstance.onClick();
 
-    expect(mutationFn).toHaveBeenCalled();
-    expect(redirectServiceSpy.redirectTo).not.toHaveBeenCalled();
+    expect(flowSpy.run).toHaveBeenCalledWith(jasmine.objectContaining({ productType: 0 }));
   });
 
-  it('avisa con un toast de error cuando el registro de la venta falla', async () => {
-    mutationFn.and.rejectWith(new Error('boom'));
+  it('avisa con un toast de error cuando el flujo falla', async () => {
+    flowSpy.run.and.rejectWith(new Error('boom'));
     const fixture = createComponent(1);
 
     await fixture.componentInstance.onClick();
@@ -94,12 +113,12 @@ describe('HomeCard', () => {
       jasmine.objectContaining({
         variant: 'error',
         title: 'Ocurrió un error',
-        message: 'No fue posible iniciar el flujo de venta. Intenta nuevamente.',
+        message: 'No fue posible continuar. Intenta nuevamente.',
       })
     );
   });
 
-  it('no muestra ningún toast cuando el flujo de venta se inicia bien', async () => {
+  it('no muestra ningún toast cuando el flujo se ejecuta bien', async () => {
     const fixture = createComponent(1);
 
     await fixture.componentInstance.onClick();
@@ -107,31 +126,21 @@ describe('HomeCard', () => {
     expect(toastStore.toasts()).toEqual([]);
   });
 
-  it('usa un correlationId distinto en cada flujo de redirección', async () => {
-    const fixture = createComponent(1);
-
-    await fixture.componentInstance.onClick();
-    const first = partnerStore.correlationId();
-
-    await fixture.componentInstance.onClick();
-    const second = partnerStore.correlationId();
-
-    expect(first).toBeTruthy();
-    expect(second).not.toBe(first);
-  });
-
-  it('ignora clicks adicionales mientras la mutación está en curso', async () => {
+  it('ignora clicks adicionales mientras el flujo está en curso', async () => {
     const fixture = createComponent(1);
 
     await Promise.all([fixture.componentInstance.onClick(), fixture.componentInstance.onClick()]);
 
-    expect(mutationFn).toHaveBeenCalledTimes(1);
-    expect(redirectServiceSpy.redirectTo).toHaveBeenCalledTimes(1);
+    expect(flowSpy.run).toHaveBeenCalledTimes(1);
   });
 
-  it('usa productType 0 cuando el input viene sin valor', () => {
-    createComponent().componentInstance.onClick();
+  it('rehabilita el botón después de un fallo para permitir reintentar', async () => {
+    flowSpy.run.and.rejectWith(new Error('boom'));
+    const fixture = createComponent(1);
 
-    expect(partnerStore.productType()).toBe(0);
+    await fixture.componentInstance.onClick();
+    await fixture.componentInstance.onClick();
+
+    expect(flowSpy.run).toHaveBeenCalledTimes(2);
   });
 });

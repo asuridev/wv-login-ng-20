@@ -13,7 +13,12 @@ export class CustomWindow {
    * cadena vacía, dejando la clave presente en `window.env`; por eso el vacío
    * cuenta como ausente y cae al `defaultValue`. En `ng serve` no existe
    * `env.js` y `window.env` es `undefined`.
+   *
+   * Con `defaultValue` el resultado siempre es `string`: la primera sobrecarga
+   * lo refleja en el tipo, para poder usarlo donde se exige un `string`.
    */
+  getWindowAttribute(envProperty: string, defaultValue: string): string;
+  getWindowAttribute(envProperty: string, defaultValue?: string): string | undefined;
   getWindowAttribute(envProperty: string, defaultValue?: string): string | undefined {
     const env = (window as unknown as { env?: Record<string, string> }).env;
     const value = env?.[envProperty];

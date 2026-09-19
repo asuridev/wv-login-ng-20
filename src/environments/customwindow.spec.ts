@@ -32,6 +32,18 @@ describe('CustomWindow', () => {
     expect(CustomWindow.instance.getWindowAttribute('KEYCLOAK_REALM', 'default')).toBe('default');
   });
 
+  // Es lo que permite usarlo en `redirectClientIds`, que exige un `string`.
+  it('siempre devuelve un string cuando se pasa defaultValue', () => {
+    testWindow.env = { KEYCLOAK_COMMERCIAL_CLIENT_ID: '' };
+
+    const clientId: string = CustomWindow.instance.getWindowAttribute(
+      'KEYCLOAK_COMMERCIAL_CLIENT_ID',
+      'client-por-defecto'
+    );
+
+    expect(clientId).toBe('client-por-defecto');
+  });
+
   it('devuelve undefined sin defaultValue', () => {
     testWindow.env = {};
 

@@ -1,12 +1,16 @@
+import { CardFlowName } from './card-flow-model';
+
 interface SectionText {
   title: string;
   text: string;
   permission?: string;
-  /** Identificador estable de la card; se usa como `track` del `@for`. */
-  key?: string;
 }
 
 interface CardText {
+  /** Identificador estable de la card; se usa como `track` del `@for`. */
+  key: string;
+  /** Qué ocurre al pulsarla; lo resuelve `toCardText` con su valor por defecto. */
+  flow: CardFlowName;
   cardButton: { label: string; redirecTo?: string; productType: number };
   cardBadge: { label: string };
 }
@@ -27,6 +31,12 @@ export interface PartnerCardConfig {
   /** URL base del destino. `default` aplica salvo que el entorno la sobrescriba. */
   url: { default: string } & Partial<Record<string, string>>;
   permission?: string;
+  /**
+   * Qué ocurre al pulsar la card; uno de `CARD_FLOW_NAMES`. Omitido o no
+   * reconocido, aplica `DEFAULT_CARD_FLOW`. Tipado como `string` porque un JSON
+   * importado no infiere literales; lo estrecha `isCardFlowName`.
+   */
+  flow?: string;
 }
 
 export interface PartnerText {

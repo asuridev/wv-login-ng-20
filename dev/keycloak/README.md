@@ -23,6 +23,19 @@ Usa la configuración `local` de `angular.json`, que reemplaza
 `src/environments/environment.ts` por `environment.local.ts` (solo cambia el
 `issuer`).
 
+## Clients
+
+| client | uso |
+|---|---|
+| `webviewlogin` | Login de esta aplicación |
+| `webtransversal` | Traspaso de sesión del flujo `sales` |
+| `webcomercial` | Traspaso de sesión del flujo `commercial` |
+
+`environment.local.ts` apunta cada flujo a su client
+(`keycloak.redirectClientIds`). Los dos de traspaso aceptan `redirectUris: ["*"]`,
+así que este realm **no** detecta un `redirect_uri` mal registrado: eso solo se
+ve en UAT y producción.
+
 ## Usuarios de prueba
 
 Contraseña de todos: `test1234`.

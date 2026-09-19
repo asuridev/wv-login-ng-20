@@ -2,7 +2,12 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import { PARTNER_CARDS } from '../config/partner-cards-source';
-import { BANKS_CONFIG_DEFAULT } from '../config/partners/configurations/banks-config';
+import { TEST_PARTNER, TEST_PARTNER_SIN_CARDS } from '../config/partners-test-support';
+import { DEFAULT_PARTNER_TEXT, PARTNERS_TEXT } from '../config/partners-register';
+import {
+  BANKS_CONFIG,
+  BANKS_CONFIG_DEFAULT,
+} from '../config/partners/configurations/banks-config';
 import { PartnerStore } from './partner.store';
 
 describe('PartnerStore', () => {
@@ -20,30 +25,30 @@ describe('PartnerStore', () => {
   });
 
   it('resuelve un partner conocido con su configuración y textos', () => {
-    store.setPartner('occidente');
+    store.setPartner(TEST_PARTNER);
 
-    expect(store.partnerId()).toBe('occidente');
-    expect(store.config()?.id).toBe('cardif-banco-occidente');
-    expect(store.bodyTitle()).toBe('¿Qué quieres hacer hoy?');
+    // Todo se compara contra la propia configuración: cambiarla no rompe nada.
+    expect(store.partnerId()).toBe(TEST_PARTNER);
+    expect(store.config()?.id).toBe(BANKS_CONFIG[TEST_PARTNER].id);
+    expect(store.bodyTitle()).toBe(PARTNERS_TEXT[DEFAULT_PARTNER_TEXT].body.title);
   });
 
   it('toma las cards del JSON del partner', () => {
-    store.setPartner('occidente');
+    store.setPartner(TEST_PARTNER);
 
     // Se compara contra el registro, no contra un contenido fijo: los JSON son
     // configuración y cambian cuando el partner ajusta su oferta.
     expect(store.cards().map((card) => card.key)).toEqual(
-      PARTNER_CARDS['occidente'].map((card) => card.key)
+      PARTNER_CARDS[TEST_PARTNER].map((card) => card.key)
     );
   });
 
   it('no muestra cards cuando el partner no declara las suyas', () => {
-    // `cardif-banco-default` no tiene entrada en el registro de cards.
-    store.setPartner('cardif-banco-default');
+    store.setPartner(TEST_PARTNER_SIN_CARDS);
 
     expect(store.cards()).toEqual([]);
     // Los textos fijos del partner siguen viniendo del código.
-    expect(store.bodyTitle()).toBe('¿Qué quieres hacer hoy?');
+    expect(store.bodyTitle()).toBe(PARTNERS_TEXT[DEFAULT_PARTNER_TEXT].body.title);
   });
 
   it('cae al partner por defecto cuando el id no existe', () => {

@@ -13,8 +13,12 @@ export class RedirectService {
    * Redirige a otra SPA usando `id_token_hint` para SSO silencioso.
    * @param appBaseUrl URL base de la app destino, ej: 'https://app-b.com'
    * @param targetPath ruta destino en la app B, ej: '/home'
+   * @param clientId client de Keycloak por el que sale el traspaso. Lo decide el
+   *   flujo de la card (`environment.keycloak.redirectClientIds`). Obligatorio a
+   *   propósito: un valor por defecto dejaría a un flujo nuevo salir en silencio
+   *   por el client de otro.
    */
-  async redirectTo(appBaseUrl: string, targetPath = '/'): Promise<void> {
+  async redirectTo(appBaseUrl: string, targetPath: string, clientId: string): Promise<void> {
     // Refrescar el token si expira en menos de 30 segundos.
     try {
       await this.keycloak.updateToken(30);
@@ -41,7 +45,7 @@ export class RedirectService {
       `${environment.keycloak.issuer}/realms/${environment.keycloak.realm}/protocol/openid-connect/auth`
     );
 
-    authUrl.searchParams.set('client_id', environment.keycloak.redirectClintId);
+    authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('redirect_uri', `${appBaseUrl}/auth/callback`);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', 'openid profile');
@@ -49,6 +53,11 @@ export class RedirectService {
     authUrl.searchParams.set('id_token_hint', idToken); // identifica al usuario
     authUrl.searchParams.set('state', encodeURIComponent(JSON.stringify(state)));
 
-    window.location.href = authUrl.toString();
+    this.navigate(authUrl.toString());
+  }
+
+  /** Aislado en un método para que los tests puedan interceptar la navegación. */
+  protected navigate(url: string): void {
+    window.location.href = url;
   }
 }

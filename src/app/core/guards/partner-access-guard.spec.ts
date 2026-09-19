@@ -3,7 +3,14 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, convertToParamMap, Router, UrlTree } from '@angular/router';
 import Keycloak from 'keycloak-js';
 
+import { PARTNER_ID_MAP } from '../config/partner-id-map';
+import { TEST_PARTNER } from '../config/partners-test-support';
 import { partnerAccessGuard } from './partner-access-guard';
+
+/** Un id de otro partner, para el caso en que el token no autoriza el de la ruta. */
+const OTRO_PARTNER_ID = Object.entries(PARTNER_ID_MAP).find(
+  ([partnerId]) => partnerId !== TEST_PARTNER
+)![1];
 
 describe('partnerAccessGuard', () => {
   let routerSpy: jasmine.SpyObj<Router>;
@@ -31,21 +38,20 @@ describe('partnerAccessGuard', () => {
   }
 
   it('permite el acceso cuando el token autoriza el partner de la ruta', () => {
-    // 'occidente' se mapea a '11' en PARTNER_ID_MAP.
-    configureWith(['11']);
+    configureWith([PARTNER_ID_MAP[TEST_PARTNER]]);
 
     const result = TestBed.runInInjectionContext(() =>
-      partnerAccessGuard(routeWith('occidente'), {} as never)
+      partnerAccessGuard(routeWith(TEST_PARTNER), {} as never)
     );
 
     expect(result).toBe(true);
   });
 
   it('redirige a not-found cuando el token no autoriza el partner', () => {
-    configureWith(['19']);
+    configureWith([OTRO_PARTNER_ID]);
 
     const result = TestBed.runInInjectionContext(() =>
-      partnerAccessGuard(routeWith('occidente'), {} as never)
+      partnerAccessGuard(routeWith(TEST_PARTNER), {} as never)
     );
 
     expect(routerSpy.createUrlTree).toHaveBeenCalledWith(['/not-found']);
@@ -56,7 +62,7 @@ describe('partnerAccessGuard', () => {
     configureWith(undefined);
 
     const result = TestBed.runInInjectionContext(() =>
-      partnerAccessGuard(routeWith('occidente'), {} as never)
+      partnerAccessGuard(routeWith(TEST_PARTNER), {} as never)
     );
 
     expect(result).toBe(notFoundTree);

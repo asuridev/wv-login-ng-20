@@ -1,4 +1,5 @@
 import { environment } from '../../../environments/environment';
+import { DEFAULT_CARD_FLOW, isCardFlowName } from '../models/card-flow-model';
 import { PartnerCardConfig, PartnerCardText } from '../models/partner-theme-model';
 import bogota from './partners/cards/bogota.json';
 import occidente from './partners/cards/occidente.json';
@@ -26,6 +27,7 @@ function resolveUrl(url: PartnerCardConfig['url']): string {
 export function toCardText(card: PartnerCardConfig): PartnerCardText {
   return {
     key: card.key,
+    flow: isCardFlowName(card.flow) ? card.flow : DEFAULT_CARD_FLOW,
     title: card.title,
     text: '',
     permission: card.permission,
